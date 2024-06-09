@@ -304,7 +304,11 @@ public class UserRegistrationGUI {
                     PreparedStatement statement = connection.prepareStatement(deleteQuery);
                     statement.setInt(1, userId);
                     int rowsAffected = statement.executeUpdate();
-                    JOptionPane.showMessageDialog(panel, rowsAffected + " registro(s) excluído(s) com sucesso.");
+                    if (rowsAffected > 0) {
+                    	JOptionPane.showMessageDialog(panel, rowsAffected + " registro(s) excluído(s) com sucesso.");
+                    } else {
+                    	JOptionPane.showMessageDialog(panel, "Erro ao excluir usuário (id inválido).", "Erro", JOptionPane.ERROR_MESSAGE);
+                    }
                 } catch (SQLException ex) {
                     ex.printStackTrace();
                     JOptionPane.showMessageDialog(panel, "Erro ao excluir usuário.", "Erro", JOptionPane.ERROR_MESSAGE);
