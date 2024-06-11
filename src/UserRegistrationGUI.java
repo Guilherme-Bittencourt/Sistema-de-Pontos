@@ -99,8 +99,18 @@ public class UserRegistrationGUI {
                 String address = addressField.getText();
                 String cpf = cpfField.getText();
 
-                if (name.isEmpty() || address.isEmpty()) {
+                if (name.isEmpty() || address.isEmpty() || phone.isEmpty() || cpf.isEmpty()) {
                     JOptionPane.showMessageDialog(panel, "Preencha todos os campos.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                if (phone.length() < 9 || phone.length() > 11) {
+                    JOptionPane.showMessageDialog(panel, "O telefone deve ter entre 9 e 11 dígitos.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                if (cpf.length() != 11) {
+                    JOptionPane.showMessageDialog(panel, "O CPF deve ter 11 dígitos.", "Erro", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
@@ -119,7 +129,7 @@ public class UserRegistrationGUI {
                 }
             }
         });
-
+        
         return panel;
     }
 
@@ -256,6 +266,22 @@ public class UserRegistrationGUI {
                 String phone = phoneField.getText();
                 String address = addressField.getText();
                 String cpf = cpfField.getText();
+                
+                if (name.isEmpty() || address.isEmpty() || phone.isEmpty() || cpf.isEmpty()) {
+                    JOptionPane.showMessageDialog(panel, "Preencha todos os campos.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                if (phone.length() < 9 || phone.length() > 11) {
+                    JOptionPane.showMessageDialog(panel, "O telefone deve ter entre 9 e 11 dígitos.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                if (cpf.length() != 11) {
+                    JOptionPane.showMessageDialog(panel, "O CPF deve ter 11 dígitos.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                
                 try {
                     String updateQuery = "UPDATE users SET username = ?, telefone = ?, endereço = ?, CPF = ? WHERE id = ?";
                     PreparedStatement statement = connection.prepareStatement(updateQuery);
@@ -430,5 +456,5 @@ public class UserRegistrationGUI {
 
         int roundedPoints = (int) Math.round(points);
         return roundedPoints;
-    }
+    }
 }
