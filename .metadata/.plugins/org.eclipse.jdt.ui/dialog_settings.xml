@@ -13,4 +13,27 @@
 	</section>
 	<section name="quick_assist_proposal_size">
 	</section>
+	<section name="OptionalMessageDialog.hide.">
+	</section>
+	<section name="FatJarPackageWizard">
+		<item key="FatJarPackageWizardPage.ANTSCRIPT_SAVE" value="false"/>
+		<item key="FatJarPackageWizardPage.ANTSCRIPT_LOCATION" value="C:\Users\carlo\OneDrive\Área de Trabalho\Importante\Sistema-de-Pontos"/>
+		<item key="FatJarPackageWizardPage.LIBRARY_HANDLING" value="1"/>
+		<item key="FatJarPackageWizardPage.LAUNCH_CONFIGURATION_SELECTION_NAME" value="UserRegistrationGUI - MyFirstProgram"/>
+		<item key="FatJarPackageWizardPage.DESTINATION_PATH_SELECTION" value="C:\Users\carlo\OneDrive\Área de Trabalho\Sistema de Pontos.jar"/>
+		<list key="FatJarPackageWizardPage.DESTINATION_NAMES_ID">
+			<item value="C:\Users\carlo\OneDrive\Área de Trabalho\Sistema de Pontos.jar"/>
+		</list>
+		<list key="FatJarPackageWizardPage.ANTSCRIPT_LOCATION_HISTORY">
+			<item value="C:\Users\carlo\OneDrive\Área de Trabalho\Importante\Sistema-de-Pontos.xml"/>
+			<item value=".xml"/>
+		</list>
+		<section name="FatJarPackageWizard.dialogBounds">
+			<item key="DIALOG_X_ORIGIN" value="370"/>
+			<item key="DIALOG_Y_ORIGIN" value="55"/>
+			<item key="DIALOG_WIDTH" value="571"/>
+			<item key="DIALOG_HEIGHT" value="550"/>
+			<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>
+		</section>
+	</section>
 </section>
