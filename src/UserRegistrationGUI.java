@@ -355,6 +355,10 @@ public class UserRegistrationGUI {
         JLabel purchaseLabel = new JLabel("Valor da Compra:");
         JTextField purchaseField = new JTextField(10);
         JButton calculateButton = new JButton("Calcular Pontos");
+        JLabel deductPoints = new JLabel("Redução de Pontos:");
+        JTextField negativePoints = new JTextField(10);
+        JButton lowerButton = new JButton("Reduzir Pontos");
+        
 
         JLabel pointsLabel = new JLabel("Pontos do Usuário:");
         JTextField pointsField = new JTextField(10);
@@ -392,6 +396,16 @@ public class UserRegistrationGUI {
 
         gbc.gridx++;
         panel.add(assignButton, gbc);
+        
+        gbc.gridy++;
+        gbc.gridx=0;
+        panel.add(deductPoints, gbc);
+        
+        gbc.gridx++;
+        panel.add(negativePoints, gbc);
+        
+        gbc.gridx++;
+        panel.add(lowerButton, gbc);
 
         searchButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -438,23 +452,49 @@ public class UserRegistrationGUI {
                     PreparedStatement statement = connection.prepareStatement(updateQuery);
                     statement.setFloat(1, currentPoints); // Apenas adiciona os pontos calculados anteriormente
                     statement.setInt(2, userId);
-                    int rowsAffected = statement.executeUpdate();
-                    JOptionPane.showMessageDialog(panel, rowsAffected + " pontos atribuídos com sucesso ao usuário com ID " + userId);
+                    if(currentPoints>0) {
+            			statement.executeUpdate();
+            			JOptionPane.showMessageDialog(panel, currentPoints + " pontos reduzidos com sucesso ao usuário com ID " + userId);
+            			} else {
+            			JOptionPane.showMessageDialog(panel, "Erro! Insira valores positivos.");	
+            			}
                 } catch (SQLException ex) {
                     ex.printStackTrace();
                     JOptionPane.showMessageDialog(panel, "Erro ao atribuir pontos ao usuário.", "Erro", JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
-
-
-        return panel;
-    }
+    
+    lowerButton.addActionListener(new ActionListener() {
+    	public void actionPerformed(ActionEvent e) {
+    		int userId = Integer.parseInt(idField.getText());
+    		float currentPoints = Float.parseFloat(negativePoints.getText());
+    		
+    		try {
+    			String updateQuery = "UPDATE users SET pontos = pontos - ? WHERE id = ?";
+    
+    			PreparedStatement statement = connection.prepareStatement(updateQuery);
+    			statement.setFloat(1,  currentPoints);
+    			statement.setInt(2, userId);
+    			if(currentPoints>0) {
+    			statement.executeUpdate();
+    			JOptionPane.showMessageDialog(panel, currentPoints + " pontos reduzidos com sucesso ao usuário com ID " + userId);
+    			} else {
+    			JOptionPane.showMessageDialog(panel, "Erro! Insira valores positivos.");	
+    			}
+    		}catch(SQLException ex){
+    			ex.printStackTrace();
+                JOptionPane.showMessageDialog(panel, "Erro ao atribuir pontos ao usuário.", "Erro", JOptionPane.ERROR_MESSAGE);	
+    		}
+    	}
+    });
+    return panel;
+}
 
     private static int calculatePoints(double purchaseAmount) {
         double points = purchaseAmount * 0.1;
 
         int roundedPoints = (int) Math.round(points);
         return roundedPoints;
-    }
+    }
 }
