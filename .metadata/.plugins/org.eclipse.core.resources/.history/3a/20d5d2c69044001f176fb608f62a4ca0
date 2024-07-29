@@ -1,0 +1,160 @@
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import org.sqlite.SQLiteDataSource;
+
+
+
+public class ProductRegistrationGUI {
+	public static void main(String[] args) {
+        // Configuração da fonte de dados SQLite
+        SQLiteDataSource ds = new SQLiteDataSource();
+        ds.setUrl("jdbc:sqlite:Produtos.db");
+
+        try (Connection connection = ds.getConnection(); Statement statement = connection.createStatement()) {
+            // Criação da tabela 'Produtos'
+            String createTableSQL = "CREATE TABLE IF NOT EXISTS Produtos ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + "name TEXT NOT NULL, "
+                    + "quantidade TEXT NOT NULL, ";
+            statement.execute(createTableSQL);
+            System.out.println("Tabela 'Produtos' criada com sucesso.");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        SwingUtilities.invokeLater(() -> createAndShowGUI(ds));
+            
+    }
+
+    private static void createAndShowGUI(SQLiteDataSource ds) {
+        JFrame frame = new JFrame("Gerenciador de Produtos");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(400, 300); // Defina o tamanho do JFrame aqui
+        frame.setLocationRelativeTo(null);
+        
+        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.addTab("Adicionar Produto", createCreateProductPanel(frame, ds));
+        tabbedPane.addTab("Lista Produtos", createListProductPanel(ds));
+       // tabbedPane.addTab("Excluir Produto", createDeleteProductPanel(ds));
+       // tabbedPane.addTab("Atualizar Produto", createUpdateProductPanel(ds));
+        
+        frame.getContentPane().add(tabbedPane);
+        frame.pack();
+        frame.setVisible(true);
+       
+    }
+    
+    private static JPanel createCreateProductPanel(JFrame frame, SQLiteDataSource ds) {
+    	JPanel panel = new JPanel(new GridBagLayout());
+    	
+    	JLabel nameLabel = new JLabel("Nome:");
+    	JTextField nameField = new JTextField(20);
+    	JLabel quantidadeLabel = new JLabel("Quantidade: ");
+    	JTextField quantidadeField = new JTextField(20);
+    	JButton createButton = new JButton("Adicionar Produto");
+    	JButton backButton = new JButton("Menu Principal");
+    	
+    	GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(5, 5, 5, 5);
+        panel.add(nameLabel, gbc);
+
+        gbc.gridy++;
+        panel.add(quantidadeLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(nameField, gbc);
+
+        gbc.gridy++;
+        panel.add(quantidadeField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy++;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+        panel.add(createButton, gbc);
+        
+        gbc.gridx = 0;
+        gbc.gridy++;
+        gbc.gridwidth = 3;
+        gbc.anchor = GridBagConstraints.CENTER;
+        panel.add(backButton, gbc);
+        
+        createButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+        		String name = nameField.getText();
+        		String quantidade = quantidadeField.getText();
+        		
+        		if (name.isEmpty() || quantidade.isEmpty()) {
+                    JOptionPane.showMessageDialog(panel, "Preencha todos os campos.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+        		}
+        		
+        		
+        		try (Connection conn = ds.getConnection()) {
+                    String insertQuery = "INSERT INTO Produtos (name, quantidade) VALUES (?, ?)";
+                    PreparedStatement statement = conn.prepareStatement(insertQuery);
+                    statement.setString(1, name);
+                    statement.setString(2, quantidade);
+             
+                    int rowsAffected = statement.executeUpdate();
+                    JOptionPane.showMessageDialog(panel, rowsAffected + " registro inserido com sucesso.");
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(panel, "Erro ao adicionar usuário.", "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+        		
+        	}
+        	
+        });
+        
+        backButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                frame.dispose();
+                MenuGUI.main(new String[0]); // Abre a janela do menu principal
+            }
+        });
+        
+        
+        
+        return panel;
+    }
+
+    private static JPanel createListProductPanel(SQLiteDataSource ds) {
+    	JPanel panel = new JPanel(new BorderLayout());
+
+    	DefaultTableModel model = new DefaultTableModel(new Object[]{"ID", "Nome", "Quantidade"}, 0);
+    	JTable table = new JTable(model);
+
+    	try (Connection conn = ds.getConnection(); Statement stmt = conn.createStatement()) {
+    		String query = "SELECT * FROM Produtos";
+    		ResultSet rs = stmt.executeQuery(query);
+
+    		while (rs.next()) {
+    			int id = rs.getInt("id");
+    			String name = rs.getString("name");
+    			String quantidade = rs.getString("quantidade");
+    			model.addRow(new Object[]{id, name, quantidade});
+    		}
+    	} catch (SQLException e) {
+    		e.printStackTrace();
+    	}
+
+    	JScrollPane scrollPane = new JScrollPane(table);
+    	panel.add(scrollPane, BorderLayout.CENTER);
+
+    	return panel;
+    }
+}
+    //private static JPanel createDeleteProductPanel(SQLiteDataSource ds) {
+    //}
+    //private static JPanel createUpdateProductPanel(SQLiteDataSource ds) {
+    //}
+//
+    

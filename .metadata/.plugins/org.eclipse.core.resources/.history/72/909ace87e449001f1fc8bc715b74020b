@@ -1,0 +1,119 @@
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+
+import org.sqlite.SQLiteDataSource;
+
+public class BudgetGUI {
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                createAndShowGUI();
+            }
+        });
+    }
+
+    private static void createAndShowGUI() {
+        JFrame frame = new JFrame("Orçamento");
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frame.setSize(400, 300);
+        JLabel label = new JLabel("Orçamento", SwingConstants.CENTER);
+        frame.getContentPane().add(label);
+        frame.setLocationRelativeTo(null); // Centraliza a janela
+        frame.setVisible(true);
+        
+        JTabbedPane tabbedPane = new JTabbedPane();
+
+        tabbedPane.addTab("Orçamento", createBudgetPanel(frame, ds));
+        //tabbedPane.addTab("Carrinho", createShoppingPanel(ds));
+        
+
+        frame.getContentPane().add(tabbedPane);
+        frame.pack();
+        frame.setVisible(true);
+    }
+    
+    private static JPanel createBudgetPanel(JFrame frame, SQLiteDataSource ds) {
+        JPanel panel = new JPanel(new GridBagLayout());
+        
+        JLabel nameLabel = new JLabel("Digite o CPF ou Telefone do Cliente:");
+        JTextField searchField = new JTextField(20);
+        JButton searchButton = new JButton("Buscar Cliente");
+        JButton backButton = new JButton("Menu Principal");
+        DefaultTableModel model = new DefaultTableModel(new Object[]{"ID", "Nome", "Telefone", "Endereço", "CPF", "Pontos"}, 0);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(5, 5, 5, 5);
+        panel.add(nameLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(searchField, gbc);
+
+
+        gbc.gridy++;
+        panel.add(backButton, gbc);
+
+        searchButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                String searchQuery = searchField.getText();
+
+                if (searchQuery.isEmpty()) {
+                    JOptionPane.showMessageDialog(panel, "Digite o CPF ou Telefone para buscar.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                try (Connection conn = ds.getConnection()) {
+                    String selectQuery = "SELECT * FROM Clientes WHERE CPF = ? OR telefone = ?";
+                    PreparedStatement statement = conn.prepareStatement(selectQuery);
+                    statement.setString(1, searchQuery);
+                    statement.setString(2, searchQuery);
+                    ResultSet resultSet = statement.executeQuery();
+                    model.setRowCount(0); // Limpar a tabela
+
+                    while (resultSet.next()) {
+                        int id = resultSet.getInt("id");
+                        String name = resultSet.getString("username");
+                        String phone = resultSet.getString("telefone");
+                        String address = resultSet.getString("endereço");
+                        String cpf = resultSet.getString("CPF");
+                        int points = resultSet.getInt("pontos");
+                        model.addRow(new Object[]{id, name, phone, address, cpf, points});
+                    }
+
+                    if (model.getRowCount() == 0) {
+                        JOptionPane.showMessageDialog(panel, "Nenhum usuário encontrado.", "Aviso", JOptionPane.INFORMATION_MESSAGE);
+                    }
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(panel, "Erro ao carregar usuários.", "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        backButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                frame.dispose(); // Fecha a janela do gerenciador de produtos
+                MenuGUI.main(new String[0]); // Abre a janela do menu principal
+            }
+        });
+
+        return panel;
+    }
+
+    } 
+

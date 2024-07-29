@@ -1,0 +1,107 @@
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+
+import org.sqlite.SQLiteDataSource;
+
+public class BudgetGUI {
+    public static void main(String[] args) {
+        SQLiteDataSource dsClients = new SQLiteDataSource();
+        dsClients.setUrl("jdbc:sqlite:Clientes.db");
+        SQLiteDataSource dsProducts = new SQLiteDataSource();
+        dsProducts.setUrl("jdbc:sqlite:Products.db");
+        
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                createAndShowGUI(dsClients, dsProducts);
+            }
+        });
+    }
+
+    private static void createAndShowGUI(SQLiteDataSource dsClients, SQLiteDataSource dsProducts) {
+        JFrame frame = new JFrame("Orçamento");
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frame.setSize(400, 300);
+
+        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.addTab("Orçamento", createBudgetPanel(frame, dsClients, dsProducts));
+        //tabbedPane.addTab("Carrinho", createShoppingPanel(ds));
+
+        frame.getContentPane().add(tabbedPane);
+        frame.pack();
+        frame.setVisible(true);
+    }
+
+    private static JPanel createBudgetPanel(JFrame frame, SQLiteDataSource dsClients, SQLiteDataSource dsProducts) {
+        JPanel panel = new JPanel(new GridBagLayout());
+
+        JLabel nameLabel = new JLabel("Digite o CPF ou Telefone do Cliente:");
+        JTextField searchField = new JTextField(20);
+        JButton searchButton = new JButton("Buscar Cliente");
+        JButton backButton = new JButton("Menu Principal");
+        
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(5, 5, 5, 5);
+        panel.add(nameLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(searchField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy++;
+        panel.add(searchButton, gbc);
+
+        gbc.gridx = 1;
+        panel.add(backButton, gbc);
+
+
+        searchButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                String searchQuery = searchField.getText();
+
+                if (searchQuery.isEmpty()) {
+                    JOptionPane.showMessageDialog(panel, "Digite o CPF ou Telefone para buscar.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                try (Connection conn = dsClients.getConnection()) {
+                    String selectQuery = "SELECT * FROM Clientes WHERE CPF = ? OR telefone = ?";
+                    PreparedStatement statement = conn.prepareStatement(selectQuery);
+                    statement.setString(1, searchQuery);
+                    statement.setString(2, searchQuery);
+                    statement.executeQuery();
+                  
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(panel, "Erro ao carregar usuário.", "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        backButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                frame.dispose(); // Fecha a janela do gerenciador de produtos
+                MenuGUI.main(new String[0]); // Abre a janela do menu principal
+            }
+        });
+
+        return panel;
+    }
+}
+

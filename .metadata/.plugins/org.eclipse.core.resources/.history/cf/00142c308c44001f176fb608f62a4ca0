@@ -1,0 +1,37 @@
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
+
+public class MenuGUI {
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> createAndShowMenu());
+    }
+
+    private static void createAndShowMenu() {
+        JFrame frame = new JFrame("Menu Principal");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(400, 300); // Defina o tamanho do JFrame aqui
+        frame.setLocationRelativeTo(null); // Centraliza o JFrame na tela
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridBagLayout());
+
+        JButton manageProductsButton = new JButton("Gerenciar Produtos");
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.insets = new Insets(10, 10, 10, 10);
+        panel.add(manageProductsButton, gbc);
+
+        manageProductsButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                frame.dispose(); // Fecha a janela do menu principal
+                ProductRegistrationGUI.main(new String[0]); // Abre a janela do gerenciador de produtos
+            }
+        });
+
+        frame.getContentPane().add(panel);
+        frame.pack();
+        frame.setVisible(true);
+    }
+}

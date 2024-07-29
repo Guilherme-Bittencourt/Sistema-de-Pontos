@@ -1,0 +1,455 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+
+public class UserRegistrationGUI {
+    private static final String URL = "jdbc:mysql://db4free.net:3306/sistemadepont";
+    private static final String USER = "sistemadepont";
+    private static final String PASSWORD = "sistemadepont";
+    private static Connection connection;
+
+    public static void main(String[] args) {
+        try {
+            connection = DriverManager.getConnection(URL, USER, PASSWORD);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Erro ao conectar ao banco de dados.", "Erro", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                createAndShowGUI();
+            }
+        });
+    }
+
+    private static void createAndShowGUI() {
+        JFrame frame = new JFrame("Cadastro de Usuários");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        JTabbedPane tabbedPane = new JTabbedPane();
+
+        tabbedPane.addTab("Criar Usuário", createCreateUserPanel());
+        tabbedPane.addTab("Listar Usuários", createListUsersPanel());
+        tabbedPane.addTab("Atualizar Usuário", createUpdateUserPanel());
+        tabbedPane.addTab("Excluir Usuário", createDeleteUserPanel());
+        tabbedPane.addTab("Atribuir Pontos", createAssignPointsPanel());
+
+        frame.getContentPane().add(tabbedPane);
+        frame.pack();
+        frame.setVisible(true);
+    }
+
+    private static JPanel createCreateUserPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+
+        JLabel nameLabel = new JLabel("Nome:");
+        JTextField nameField = new JTextField(20);
+        JLabel phoneLabel = new JLabel("Telefone:");
+        JTextField phoneField = new JTextField(20);
+        JLabel addressLabel = new JLabel("Endereço:");
+        JTextField addressField = new JTextField(20);
+        JLabel cpfLabel = new JLabel("CPF:");
+        JTextField cpfField = new JTextField(20);
+        JButton createButton = new JButton("Adicionar Usuário");
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(5, 5, 5, 5);
+        panel.add(nameLabel, gbc);
+
+        gbc.gridy++;
+        panel.add(phoneLabel, gbc);
+
+        gbc.gridy++;
+        panel.add(addressLabel, gbc);
+
+        gbc.gridy++;
+        panel.add(cpfLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(nameField, gbc);
+
+        gbc.gridy++;
+        panel.add(phoneField, gbc);
+
+        gbc.gridy++;
+        panel.add(addressField, gbc);
+
+        gbc.gridy++;
+        panel.add(cpfField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy++;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+        panel.add(createButton, gbc);
+
+        createButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                String name = nameField.getText();
+                String phone = phoneField.getText();
+                String address = addressField.getText();
+                String cpf = cpfField.getText();
+
+                if (name.isEmpty() || address.isEmpty()) {
+                    JOptionPane.showMessageDialog(panel, "Preencha todos os campos.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                try {
+                    String insertQuery = "INSERT INTO users (username, telefone, endereço, CPF) VALUES (?, ?, ?, ?)";
+                    PreparedStatement statement = connection.prepareStatement(insertQuery);
+                    statement.setString(1, name);
+                    statement.setString(2, phone);
+                    statement.setString(3, address);
+                    statement.setString(4, cpf);
+                    int rowsAffected = statement.executeUpdate();
+                    JOptionPane.showMessageDialog(panel, rowsAffected + " registro inserido com sucesso.");
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(panel, "Erro ao adicionar usuário.", "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        return panel;
+    }
+
+    private static JPanel createListUsersPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        JTable table = new JTable();
+        DefaultTableModel model = new DefaultTableModel(new Object[]{"ID", "Nome", "Telefone", "Endereço", "CPF", "Pontos"}, 0);
+        table.setModel(model);
+        JScrollPane scrollPane = new JScrollPane(table);
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        JButton refreshButton = new JButton("Atualizar Lista");
+        refreshButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    String selectQuery = "SELECT * FROM users";
+                    PreparedStatement statement = connection.prepareStatement(selectQuery);
+                    ResultSet resultSet = statement.executeQuery();
+                    model.setRowCount(0); // Clear table
+                    while (resultSet.next()) {
+                        int id = resultSet.getInt("id");
+                        String name = resultSet.getString("username");
+                        String phone = resultSet.getString("telefone");
+                        String address = resultSet.getString("endereço");
+                        String cpf = resultSet.getString("CPF");
+                        int points = resultSet.getInt("pontos");
+                        model.addRow(new Object[]{id, name, phone, address, cpf, points});
+                    }
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(panel, "Erro ao carregar usuários.", "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        panel.add(refreshButton, BorderLayout.SOUTH);
+
+        return panel;
+    }
+
+    private static JPanel createUpdateUserPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+
+        JLabel idLabel = new JLabel("ID do Usuário:");
+        JTextField idField = new JTextField(10);
+        JButton searchButton = new JButton("Buscar");
+        JLabel nameLabel = new JLabel("Nome:");
+        JTextField nameField = new JTextField(20);
+        JLabel phoneLabel = new JLabel("Telefone:");
+        JTextField phoneField = new JTextField(20);
+        JLabel addressLabel = new JLabel("Endereço:");
+        JTextField addressField = new JTextField(20);
+        JLabel cpfLabel = new JLabel("CPF:");
+        JTextField cpfField = new JTextField(20);
+        JButton updateButton = new JButton("Atualizar Usuário");
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(5, 5, 5, 5);
+        panel.add(idLabel, gbc);
+
+        gbc.gridx++;
+        panel.add(idField, gbc);
+
+        gbc.gridx++;
+        panel.add(searchButton, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy++;
+        panel.add(nameLabel, gbc);
+
+        gbc.gridx++;
+        panel.add(nameField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy++;
+        panel.add(phoneLabel, gbc);
+
+        gbc.gridx++;
+        panel.add(phoneField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy++;
+        panel.add(addressLabel, gbc);
+
+        gbc.gridx++;
+        panel.add(addressField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy++;
+        panel.add(cpfLabel, gbc);
+
+        gbc.gridx++;
+        panel.add(cpfField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy++;
+        gbc.gridwidth = 3;
+        gbc.anchor = GridBagConstraints.CENTER;
+        panel.add(updateButton, gbc);
+
+        searchButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                int userId = Integer.parseInt(idField.getText());
+                try {
+                    String query = "SELECT * FROM users WHERE id = ?";
+                    PreparedStatement statement = connection.prepareStatement(query);
+                    statement.setInt(1, userId);
+                    ResultSet resultSet = statement.executeQuery();
+                    if (resultSet.next()) {
+                        String name = resultSet.getString("username");
+                        String phone = resultSet.getString("telefone");
+                        String address = resultSet.getString("endereço");
+                        String cpf = resultSet.getString("CPF");
+                        nameField.setText(name);
+                        phoneField.setText(phone);
+                        addressField.setText(address);
+                        cpfField.setText(cpf);
+                    } else {
+                        JOptionPane.showMessageDialog(panel, "Usuário não encontrado.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(panel, "Erro ao buscar usuário.", "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        updateButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                int userId = Integer.parseInt(idField.getText());
+                String name = nameField.getText();
+                String phone = phoneField.getText();
+                String address = addressField.getText();
+                String cpf = cpfField.getText();
+                try {
+                    String updateQuery = "UPDATE users SET username = ?, telefone = ?, endereço = ?, CPF = ? WHERE id = ?";
+                    PreparedStatement statement = connection.prepareStatement(updateQuery);
+                    statement.setString(1, name);
+                    statement.setString(2, phone);
+                    statement.setString(3, address);
+                    statement.setString(4, cpf);
+                    statement.setInt(5, userId);
+                    int rowsAffected = statement.executeUpdate();
+                    JOptionPane.showMessageDialog(panel, rowsAffected + " registro atualizado com sucesso.");
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(panel, "Erro ao atualizar usuário.", "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        return panel;
+    }
+
+    private static JPanel createDeleteUserPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+
+        JLabel idLabel = new JLabel("ID do Usuário:");
+        JTextField idField = new JTextField(10);
+        JButton deleteButton = new JButton("Excluir");
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(5, 5, 5, 5);
+        panel.add(idLabel, gbc);
+
+        gbc.gridx++;
+        panel.add(idField, gbc);
+
+        gbc.gridx++;
+        panel.add(deleteButton, gbc);
+
+        deleteButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                int userId = Integer.parseInt(idField.getText());
+                try {
+                    String deleteQuery = "DELETE FROM users WHERE id = ?";
+                    PreparedStatement statement = connection.prepareStatement(deleteQuery);
+                    statement.setInt(1, userId);
+                    int rowsAffected = statement.executeUpdate();
+                    if(rowsAffected>0) {
+                    JOptionPane.showMessageDialog(panel, rowsAffected + " registro(s) excluído(s) com sucesso.");
+                    }else{
+                    JOptionPane.showMessageDialog(panel, "Erro ao excluir usuário.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    }
+                }catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(panel, "Erro ao excluir usuário.", "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        return panel;
+    }
+
+
+    private static JPanel createAssignPointsPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+
+        JLabel idLabel = new JLabel("ID do Usuário:");
+        JTextField idField = new JTextField(10);
+        JButton searchButton = new JButton("Buscar");
+        JLabel purchaseLabel = new JLabel("Valor da Compra:");
+        JTextField purchaseField = new JTextField(10);
+        JButton calculateButton = new JButton("Calcular Pontos");
+        JLabel deductPoints = new JLabel("Redução de Pontos:");
+        JTextField negativePoints = new JTextField(10);
+        JButton lowerPoints = new JButton("Reduzir Pontos");
+        
+        JLabel pointsLabel = new JLabel("Pontos do Usuário:");
+        JTextField pointsField = new JTextField(10);
+        JButton assignButton = new JButton("Atribuir Pontos");
+        
+        
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(5, 5, 5, 5);
+        panel.add(idLabel, gbc);
+
+        gbc.gridx++;
+        panel.add(idField, gbc);
+
+        gbc.gridx++;
+        panel.add(searchButton, gbc);
+
+        gbc.gridy++;
+        gbc.gridx = 0;
+        panel.add(purchaseLabel, gbc);
+
+        gbc.gridx++;
+        panel.add(purchaseField, gbc);
+
+        gbc.gridx++;
+        panel.add(calculateButton, gbc);
+
+        gbc.gridy++;
+        gbc.gridx = 0;
+        panel.add(pointsLabel, gbc);
+
+        gbc.gridx++;
+        panel.add(pointsField, gbc);
+
+        gbc.gridx++;
+        panel.add(assignButton, gbc);
+        
+        gbc.gridy++;
+        gbc.gridx=0;
+        panel.add(deductPoints, gbc);
+        
+        gbc.gridx++;
+        panel.add(negativePoints, gbc);
+        
+        gbc.gridx++;
+        panel.add(lowerPoints, gbc);
+
+        searchButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                int userId = Integer.parseInt(idField.getText());
+                try {
+                    String query = "SELECT pontos FROM users WHERE id = ?";
+                    PreparedStatement statement = connection.prepareStatement(query);
+                    statement.setInt(1, userId);
+                    ResultSet resultSet = statement.executeQuery();
+                    if (resultSet.next()) {
+                        int points = resultSet.getInt("pontos");
+                        pointsField.setText(Integer.toString(points));
+                    } else {
+                        JOptionPane.showMessageDialog(panel, "Usuário não encontrado.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(panel, "Erro ao buscar usuário.", "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        calculateButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    double purchaseAmount = Double.parseDouble(purchaseField.getText());
+                    // Calcular pontos
+                    int points = calculatePoints(purchaseAmount);
+                    pointsField.setText(Integer.toString(points));
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(panel, "Digite um valor válido para a compra.", "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        assignButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                int userId = Integer.parseInt(idField.getText());
+                float currentPoints = Float.parseFloat(pointsField.getText());
+
+                try {
+                    // Atualizar pontos com base no valor calculado pelo botão "Calcular Pontos"
+                    String updateQuery = "UPDATE users SET pontos = pontos + ? WHERE id = ?";
+                    PreparedStatement statement = connection.prepareStatement(updateQuery);
+                    statement.setFloat(1, currentPoints); // Apenas adiciona os pontos calculados anteriormente
+                    statement.setInt(2, userId);
+                    int rowsAffected = statement.executeUpdate();
+
+                    if (rowsAffected > 0) {
+                        JOptionPane.showMessageDialog(panel, currentPoints + " pontos atribuídos com sucesso ao usuário com ID " + userId);
+                    } else {
+                        JOptionPane.showMessageDialog(panel, "Nenhum ponto foi atribuído. Verifique o ID do usuário.", "Atenção", JOptionPane.WARNING_MESSAGE);
+                    }
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(panel, "Erro ao atribuir pontos ao usuário.", "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+
+
+        return panel;
+    }
+
+    private static int calculatePoints(double purchaseAmount) {
+        double points = purchaseAmount * 0.1;
+
+        int roundedPoints = (int) Math.round(points);
+        return roundedPoints;
+    }
+}

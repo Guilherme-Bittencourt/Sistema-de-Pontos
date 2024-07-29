@@ -1,0 +1,257 @@
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import org.sqlite.SQLiteDataSource;
+
+public class BudgetGUI {
+    public static void main(String[] args) {
+        SQLiteDataSource dsClients = new SQLiteDataSource();
+        dsClients.setUrl("jdbc:sqlite:Clientes.db");
+        SQLiteDataSource dsProducts = new SQLiteDataSource();
+        dsProducts.setUrl("jdbc:sqlite:Produtos.db");
+
+        SwingUtilities.invokeLater(() -> createAndShowGUI(dsClients, dsProducts));
+    }
+
+    private static void createAndShowGUI(SQLiteDataSource dsClients, SQLiteDataSource dsProducts) {
+        JFrame frame = new JFrame("Orçamento e Carrinho");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(800, 600);
+
+        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.addTab("Orçamento", createBudgetPanel(dsProducts));
+        tabbedPane.addTab("Carrinho", createShoppingPanel(dsClients, dsProducts));
+
+        frame.getContentPane().add(tabbedPane);
+        frame.setVisible(true);
+    }
+
+    private static JPanel createBudgetPanel(SQLiteDataSource dsProducts) {
+        JPanel panel = new JPanel(new GridBagLayout());
+
+        JLabel nameLabel = new JLabel("Nome do Produto:");
+        JTextField nameField = new JTextField(20);
+        JLabel quantidadeLabel = new JLabel("Quantidade:");
+        JTextField quantidadeField = new JTextField(20);
+        JButton addButton = new JButton("Adicionar ao Orçamento");
+        JTable table = new JTable(new DefaultTableModel(new Object[]{"Nome", "Quantidade", "Preço Unitário", "Subtotal"}, 0));
+        JScrollPane scrollPane = new JScrollPane(table);
+        JButton calculateButton = new JButton("Calcular Total");
+        JLabel totalLabel = new JLabel("Total:");
+        JTextField totalField = new JTextField(20);
+        JLabel pointsLabel = new JLabel("Pontos Gerados:");
+        JTextField pointsField = new JTextField(20);
+        totalField.setEditable(false);
+        pointsField.setEditable(false);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        panel.add(nameLabel, gbc);
+
+        gbc.gridx = 1;
+        panel.add(nameField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        panel.add(quantidadeLabel, gbc);
+
+        gbc.gridx = 1;
+        panel.add(quantidadeField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(addButton, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.BOTH;
+        panel.add(scrollPane, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.gridwidth = 1;
+        gbc.fill = GridBagConstraints.NONE;
+        panel.add(calculateButton, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        panel.add(totalLabel, gbc);
+
+        gbc.gridx = 1;
+        panel.add(totalField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        panel.add(pointsLabel, gbc);
+
+        gbc.gridx = 1;
+        panel.add(pointsField, gbc);
+
+        addButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                String name = nameField.getText();
+                String quantidadeStr = quantidadeField.getText();
+
+                if (name.isEmpty() || quantidadeStr.isEmpty()) {
+                    JOptionPane.showMessageDialog(panel, "Preencha todos os campos.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                int quantidade;
+
+                try {
+                    quantidade = Integer.parseInt(quantidadeStr);
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(panel, "Quantidade deve ser um número inteiro.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                if (quantidade < 0) {
+                    JOptionPane.showMessageDialog(panel, "Quantidade não pode ser negativa.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                try (Connection conn = dsProducts.getConnection()) {
+                    String selectQuery = "SELECT * FROM Produtos WHERE name = ?";
+                    PreparedStatement statement = conn.prepareStatement(selectQuery);
+                    statement.setString(1, name);
+                    ResultSet resultSet = statement.executeQuery();
+
+                    if (resultSet.next()) {
+                        int estoque = resultSet.getInt("quantidade");
+                        if (quantidade > estoque) {
+                            JOptionPane.showMessageDialog(panel, "Quantidade em estoque insuficiente.", "Erro", JOptionPane.ERROR_MESSAGE);
+                        } else {
+                            float preco = resultSet.getFloat("preco");
+                            float subtotal = preco * quantidade;
+                            DefaultTableModel model = (DefaultTableModel) table.getModel();
+                            model.addRow(new Object[]{name, quantidade, preco, subtotal});
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(panel, "Produto não encontrado.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(panel, "Erro ao adicionar produto.", "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        calculateButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                DefaultTableModel model = (DefaultTableModel) table.getModel();
+                double total = 0.0;
+                for (int i = 0; i < model.getRowCount(); i++) {
+                    total += (double) model.getValueAt(i, 3);
+                }
+                totalField.setText(Double.toString(total));
+
+                int points = calculatePoints(total);
+                pointsField.setText(Integer.toString(points));
+            }
+        });
+
+        return panel;
+    }
+
+    private static JPanel createShoppingPanel(SQLiteDataSource dsClients, SQLiteDataSource dsProducts) {
+        JPanel panel = new JPanel(new GridBagLayout());
+
+        JLabel searchLabel = new JLabel("Buscar Cliente (CPF ou Telefone):");
+        JTextField searchField = new JTextField(20);
+        JButton searchButton = new JButton("Buscar Cliente");
+        JLabel clientInfoLabel = new JLabel("Cliente: ");
+        JTable table = new JTable(new DefaultTableModel(new Object[]{"Nome", "Quantidade", "Preço Unitário", "Subtotal"}, 0));
+        JScrollPane scrollPane = new JScrollPane(table);
+        JLabel totalLabel = new JLabel("Total:");
+        JTextField totalField = new JTextField(20);
+        JLabel pointsLabel = new JLabel("Pontos Gerados:");
+        JTextField pointsField = new JTextField(20);
+        totalField.setEditable(false);
+        pointsField.setEditable(false);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        panel.add(searchLabel, gbc);
+
+        gbc.gridx = 1;
+        panel.add(searchField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        panel.add(searchButton, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 2;
+        panel.add(clientInfoLabel, gbc);
+
+        gbc.gridy = 3;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.BOTH;
+        panel.add(scrollPane, gbc);
+
+        gbc.gridy = 4;
+        gbc.gridwidth = 1;
+        gbc.fill = GridBagConstraints.NONE;
+        panel.add(totalLabel, gbc);
+
+        gbc.gridx = 1;
+        panel.add(totalField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        panel.add(pointsLabel, gbc);
+
+        gbc.gridx = 1;
+        panel.add(pointsField, gbc);
+
+        searchButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                String searchQuery = searchField.getText();
+
+                if (searchQuery.isEmpty()) {
+                    JOptionPane.showMessageDialog(panel, "Digite o CPF ou Telefone para buscar.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                try (Connection conn = dsClients.getConnection()) {
+                    String selectQuery = "SELECT * FROM Clientes WHERE CPF = ? OR telefone = ?";
+                    PreparedStatement statement = conn.prepareStatement(selectQuery);
+                    statement.setString(1, searchQuery);
+                    statement.setString(2, searchQuery);
+                    ResultSet resultSet = statement.executeQuery();
+
+                    if (resultSet.next()) {
+                        String name = resultSet.getString("username");
+                        int points = resultSet.getInt("pontos");
+                        clientInfoLabel.setText("Cliente: " + name + " | Pontos: " + points);
+                    } else {
+                        JOptionPane.showMessageDialog(panel, "Cliente não encontrado.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(panel, "Erro ao buscar cliente.", "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        return panel;
+    }
+
+    private static int calculatePoints(double purchaseAmount) {
+        double points = purchaseAmount * 0.03;
+        return (int) Math.round(points);
+    }
+}

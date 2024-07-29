@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="lib" path="C:/Users/carlo/Downloads/mysql-connector-java-8.0.30/mysql-connector-java-8.0.30/mysql-connector-java-8.0.30.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
+	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
 		<attributes>
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
+<<<<<<< HEAD
 	<classpathentry kind="lib" path="C:/Users/carlo/Downloads/sqlite-jdbc-3.46.0.0.jar"/>
 	<classpathentry kind="lib" path="C:/Users/carlo/Downloads/slf4j-api-1.7.36.jar"/>
+=======
+	<classpathentry kind="lib" path="C:/Users/kalle/Downloads/mysql-connector-java-8.0.30/mysql-connector-java-8.0.30.jar"/>
+>>>>>>> c87f125bb3aab45c0ef82a0305b1f8af8ed11a43
 	<classpathentry kind="output" path="bin"/>
 </classpath>

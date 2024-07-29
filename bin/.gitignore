@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /menugui.class
 /MenuGUI.class
 /UserRegistrationGUI.class
@@ -9,6 +10,8 @@
 /MenuGUI$3.class
 /MenuGUI$4.class
 /ProductRegistrationGUI$1.class
+=======
+>>>>>>> c87f125bb3aab45c0ef82a0305b1f8af8ed11a43
 /UserRegistrationGUI$1.class
 /UserRegistrationGUI$2.class
 /UserRegistrationGUI$3.class
@@ -18,6 +21,7 @@
 /UserRegistrationGUI$7.class
 /UserRegistrationGUI$8.class
 /UserRegistrationGUI$9.class
+<<<<<<< HEAD
 /ProductRegistrationGUI$2.class
 /UserRegistrationGUI$10.class
 /ProductRegistrationGUI$3.class
@@ -33,3 +37,7 @@
 /BudgetGUI$4.class
 /BudgetGUI$5.class
 /BudgetGUI$6.class
+=======
+/UserRegistrationGUI.class
+/UserRegistrationGUI$10.class
+>>>>>>> c87f125bb3aab45c0ef82a0305b1f8af8ed11a43
