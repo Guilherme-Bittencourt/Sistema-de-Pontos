@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
+	<item key="org.eclipse.jdt.ui.lastextjar" value="C:\Users\carlo\Downloads"/>
 	<section name="org.eclipse.jdt.internal.ui.packageview.PackageExplorerPart">
 		<item key="group_libraries" value="true"/>
 		<item key="layout" value="2"/>
@@ -14,14 +15,25 @@
 	<section name="quick_assist_proposal_size">
 	</section>
 	<section name="OptionalMessageDialog.hide.">
+		<item key="org.eclipse.jdt.ui.typecomment.deprecated" value="true"/>
+		<item key="RunnableJar.export.ipwarning" value="false"/>
 	</section>
 	<section name="FatJarPackageWizard">
 		<item key="FatJarPackageWizardPage.ANTSCRIPT_SAVE" value="false"/>
 		<item key="FatJarPackageWizardPage.ANTSCRIPT_LOCATION" value="C:\Users\carlo\OneDrive\Área de Trabalho\Importante\Sistema-de-Pontos"/>
-		<item key="FatJarPackageWizardPage.LIBRARY_HANDLING" value="1"/>
-		<item key="FatJarPackageWizardPage.LAUNCH_CONFIGURATION_SELECTION_NAME" value="UserRegistrationGUI - MyFirstProgram"/>
-		<item key="FatJarPackageWizardPage.DESTINATION_PATH_SELECTION" value="C:\Users\carlo\OneDrive\Área de Trabalho\Sistema de Pontos.jar"/>
+		<item key="FatJarPackageWizardPage.LIBRARY_HANDLING" value="2"/>
+		<item key="FatJarPackageWizardPage.LAUNCH_CONFIGURATION_SELECTION_NAME" value="MenuGUI - MyFirstProgram"/>
+		<item key="FatJarPackageWizardPage.DESTINATION_PATH_SELECTION" value="C:\Users\carlo\OneDrive\Área de Trabalho\Fidelity.jar"/>
 		<list key="FatJarPackageWizardPage.DESTINATION_NAMES_ID">
+			<item value="C:\Users\carlo\OneDrive\Área de Trabalho\Fidelity.jar"/>
+			<item value="C:\Users\carlo\OneDrive\Área de Trabalho\SistemaDePontos(Embarcado).jar"/>
+			<item value="C:\Users\carlo\OneDrive\Área de Trabalho\SistemaDePontos.jar"/>
+			<item value="C:\Users\carlo\OneDrive\Área de Trabalho\Naotenhomaiscriativdade.jar"/>
+			<item value="C:\Users\carlo\OneDrive\Área de Trabalho\SemNOProjeto.jar"/>
+			<item value="C:\Users\carlo\OneDrive\Área de Trabalho\ComNOProjeto.jar"/>
+			<item value="C:\Users\carlo\OneDrive\Área de Trabalho\teste3.jar"/>
+			<item value="C:\Users\carlo\OneDrive\Área de Trabalho\teste1.jar"/>
+			<item value="C:\Users\carlo\OneDrive\Área de Trabalho\teste.jar"/>
 			<item value="C:\Users\carlo\OneDrive\Área de Trabalho\Sistema de Pontos.jar"/>
 		</list>
 		<list key="FatJarPackageWizardPage.ANTSCRIPT_LOCATION_HISTORY">
@@ -29,11 +41,35 @@
 			<item value=".xml"/>
 		</list>
 		<section name="FatJarPackageWizard.dialogBounds">
-			<item key="DIALOG_X_ORIGIN" value="370"/>
+			<item key="DIALOG_X_ORIGIN" value="394"/>
 			<item key="DIALOG_Y_ORIGIN" value="55"/>
-			<item key="DIALOG_WIDTH" value="571"/>
+			<item key="DIALOG_WIDTH" value="525"/>
 			<item key="DIALOG_HEIGHT" value="550"/>
 			<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>
 		</section>
+	</section>
+	<section name="ClasspathContainerSelectionPage">
+		<item key="index" value="0"/>
+	</section>
+	<section name="BuildPathsPropertyPage">
+		<item key="pageIndex" value="0"/>
+	</section>
+	<section name="NewClassCreationWizard.dialogBounds">
+		<item key="DIALOG_X_ORIGIN" value="369"/>
+		<item key="DIALOG_Y_ORIGIN" value="8"/>
+		<item key="DIALOG_WIDTH" value="574"/>
+		<item key="DIALOG_HEIGHT" value="659"/>
+		<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>
+	</section>
+	<section name="NewClassWizardPage">
+		<item key="create_constructor" value="false"/>
+		<item key="create_unimplemented" value="true"/>
+	</section>
+	<section name="EditFilterWizard.dialogBounds">
+		<item key="DIALOG_X_ORIGIN" value="394"/>
+		<item key="DIALOG_Y_ORIGIN" value="36"/>
+		<item key="DIALOG_WIDTH" value="525"/>
+		<item key="DIALOG_HEIGHT" value="535"/>
+		<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>
 	</section>
 </section>
