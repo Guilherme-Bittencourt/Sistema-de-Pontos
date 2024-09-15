@@ -23,8 +23,8 @@ public class MenuGUI {
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         JButton pointsSystemButton = new JButton("Sistema de Pontos");
-        JButton productManagerButton = new JButton("Gerenciador de Produtos");
-        JButton budgetButton = new JButton("Orçamento");
+        JButton productManagerButton = new JButton("Lista de Produtos");
+        JButton budgetButton = new JButton("Resgate de Produtos");
 
         gbc.gridx = 0;
         gbc.gridy = 0;

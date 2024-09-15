@@ -5,35 +5,34 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import com.mysql.cj.jdbc.MysqlDataSource;
 
-
 public class ProductRegistrationGUI {
     public static void main(String[] args) {
-        // Configuração da fonte de dados SQLite
-    	MysqlDataSource ds = new MysqlDataSource();
+        // Configuração da fonte de dados MySQL
+        MysqlDataSource ds = new MysqlDataSource();
         ds.setUrl("jdbc:mysql://10.0.0.109:3306/Fidelity"); // Substitua 'seu_banco_de_dados' pelo nome do seu banco de dados
         ds.setUser("dba"); // Substitua 'seu_usuario' pelo seu usuário MySQL
         ds.setPassword("admin123"); // Substitua 'sua_senha' pela sua senha MySQL
-        
+
         try (Connection connection = ds.getConnection(); Statement statement = connection.createStatement()) {
-            // Criação da tabela 'Produtos' se não existir
-        	String createTableSQL = "CREATE TABLE IF NOT EXISTS Produtos ("
+            // Criação da tabela 'Produtos' com pontos_resgate
+            String createTableSQL = "CREATE TABLE IF NOT EXISTS Produtos ("
                     + "id INT AUTO_INCREMENT PRIMARY KEY, "
                     + "name VARCHAR(255) NOT NULL, "
                     + "quantidade INT NOT NULL, "
-                    + "preco DECIMAL(10, 2) NOT NULL)";
-    statement.execute(createTableSQL);
-    System.out.println("Tabela 'Produtos' criada com sucesso.");
-    } catch (SQLException e) {
-        e.printStackTrace();
-    }
+                    + "preco DECIMAL(10, 2) NOT NULL, "
+                    + "pontos_resgate INT NOT NULL)";
+            statement.execute(createTableSQL);
+            System.out.println("Tabela 'Produtos' criada com sucesso.");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
-
-        // Iniciar a GUI de registro de usuário
-            SwingUtilities.invokeLater(() -> createAndShowGUI(ds));
+        // Iniciar a GUI de registro de produto
+        SwingUtilities.invokeLater(() -> createAndShowGUI(ds));
     }
 
     private static void createAndShowGUI(MysqlDataSource ds) {
-        JFrame frame = new JFrame("Gerenciador de Produtos");
+        JFrame frame = new JFrame("Lista de Produtos");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(400, 550); // Ajuste o tamanho aqui
         frame.setLocationRelativeTo(null); // Centraliza o JFrame na tela
@@ -41,8 +40,6 @@ public class ProductRegistrationGUI {
         JTabbedPane tabbedPane = new JTabbedPane();
         tabbedPane.addTab("Adicionar Produto", createCreateProductPanel(frame, ds));
         tabbedPane.addTab("Listar Produtos", createListProductPanel(ds));
-        tabbedPane.addTab("Excluir Produto", createDeleteProductPanel(ds));
-        tabbedPane.addTab("Atualizar Produto", createUpdateProductPanel(ds));
 
         frame.getContentPane().add(tabbedPane, BorderLayout.CENTER);
         frame.pack();
@@ -58,6 +55,8 @@ public class ProductRegistrationGUI {
         JTextField quantidadeField = new JTextField(20);
         JLabel precoLabel = new JLabel("Preço:");
         JTextField precoField = new JTextField(20);
+        JLabel pontosLabel = new JLabel("Pontos para Resgate:");
+        JTextField pontosField = new JTextField(20);
         JButton createButton = new JButton("Adicionar Produto");
         JButton backButton = new JButton("Menu Principal");
 
@@ -74,6 +73,9 @@ public class ProductRegistrationGUI {
         gbc.gridy++;
         panel.add(precoLabel, gbc);
 
+        gbc.gridy++;
+        panel.add(pontosLabel, gbc);
+
         gbc.gridx = 1;
         gbc.gridy = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -84,6 +86,9 @@ public class ProductRegistrationGUI {
 
         gbc.gridy++;
         panel.add(precoField, gbc);
+
+        gbc.gridy++;
+        panel.add(pontosField, gbc);
 
         gbc.gridx = 0;
         gbc.gridy++;
@@ -99,14 +104,16 @@ public class ProductRegistrationGUI {
                 String name = nameField.getText();
                 String quantidadeStr = quantidadeField.getText();
                 String precoStr = precoField.getText();
+                String pontosStr = pontosField.getText();
 
-                if (name.isEmpty() || quantidadeStr.isEmpty() || precoStr.isEmpty()) {
+                if (name.isEmpty() || quantidadeStr.isEmpty() || precoStr.isEmpty() || pontosStr.isEmpty()) {
                     JOptionPane.showMessageDialog(panel, "Preencha todos os campos.", "Erro", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
                 int quantidade;
                 float preco;
+                int pontosResgate;
 
                 try {
                     quantidade = Integer.parseInt(quantidadeStr);
@@ -122,17 +129,25 @@ public class ProductRegistrationGUI {
                     return;
                 }
 
+                try {
+                    pontosResgate = Integer.parseInt(pontosStr);
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(panel, "Pontos para resgate devem ser um número inteiro.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
                 if (quantidade < 0) {
                     JOptionPane.showMessageDialog(panel, "Quantidade não pode ser negativa.", "Erro", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
                 try (Connection conn = ds.getConnection()) {
-                    String insertQuery = "INSERT INTO Produtos (name, quantidade, preco) VALUES (?, ?, ?)";
+                    String insertQuery = "INSERT INTO Produtos (name, quantidade, preco, pontos_resgate) VALUES (?, ?, ?, ?)";
                     PreparedStatement statement = conn.prepareStatement(insertQuery);
                     statement.setString(1, name);
                     statement.setInt(2, quantidade);
                     statement.setFloat(3, preco);
+                    statement.setInt(4, pontosResgate);
 
                     int rowsAffected = statement.executeUpdate();
                     JOptionPane.showMessageDialog(panel, rowsAffected + " registro(s) inserido(s) com sucesso.");
@@ -160,8 +175,10 @@ public class ProductRegistrationGUI {
         JTextField searchField = new JTextField(20);
         JButton searchButton = new JButton("Buscar");
         JButton listButton = new JButton("Listar Todos");
+        JButton updateButton = new JButton("Atualizar");
+        JButton deleteButton = new JButton("Excluir");
         JTable table = new JTable();
-        DefaultTableModel model = new DefaultTableModel(new Object[]{"ID", "Nome", "Quantidade", "Preço"}, 0);
+        DefaultTableModel model = new DefaultTableModel(new Object[]{"ID", "Nome", "Quantidade", "Preço", "Pontos"}, 0);
         table.setModel(model);
         JScrollPane scrollPane = new JScrollPane(table);
 
@@ -181,9 +198,15 @@ public class ProductRegistrationGUI {
         gbc.gridx++;
         panel.add(listButton, gbc);
 
+        gbc.gridx++;
+        panel.add(updateButton, gbc);
+
+        gbc.gridx++;
+        panel.add(deleteButton, gbc);
+
         gbc.gridx = 0;
         gbc.gridy++;
-        gbc.gridwidth = 4;
+        gbc.gridwidth = 6;
         gbc.fill = GridBagConstraints.BOTH;
         panel.add(scrollPane, gbc);
 
@@ -192,7 +215,7 @@ public class ProductRegistrationGUI {
                 String searchQuery = searchField.getText();
 
                 if (searchQuery.isEmpty()) {
-                    JOptionPane.showMessageDialog(panel, "Digite o Nome para buscar.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(panel, "Digite o nome para buscar.", "Erro", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
@@ -208,7 +231,8 @@ public class ProductRegistrationGUI {
                         String name = resultSet.getString("name");
                         int quantidade = resultSet.getInt("quantidade");
                         float preco = resultSet.getFloat("preco");
-                        model.addRow(new Object[]{id, name, quantidade, preco});
+                        int pontos = resultSet.getInt("pontos_resgate");
+                        model.addRow(new Object[]{id, name, quantidade, preco, pontos});
                     }
 
                     if (model.getRowCount() == 0) {
@@ -226,6 +250,63 @@ public class ProductRegistrationGUI {
                 showPasswordDialogAndListProducts(ds, model);
             }
         });
+
+        updateButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                int selectedRow = table.getSelectedRow();
+                if (selectedRow >= 0) {
+                    String id = model.getValueAt(selectedRow, 0).toString();
+                    String name = model.getValueAt(selectedRow, 1).toString();
+                    String quantidade = model.getValueAt(selectedRow, 2).toString();
+                    String preco = model.getValueAt(selectedRow, 3).toString();
+                    String pontos = model.getValueAt(selectedRow, 4).toString();
+
+                    JFrame updateFrame = new JFrame("Atualizar Produto");
+                    updateFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+                    JPanel updatePanel = createUpdateProductPanel(ds, id, name, quantidade, preco, pontos);
+                    updateFrame.getContentPane().add(updatePanel);
+                    updateFrame.pack();
+                    updateFrame.setLocationRelativeTo(null);
+                    updateFrame.setVisible(true);
+                } else {
+                    JOptionPane.showMessageDialog(panel, "Selecione um produto para atualizar.", "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        deleteButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                // Solicita confirmação antes de excluir o produto
+                int confirm = JOptionPane.showConfirmDialog(panel, "Você realmente deseja excluir este produto?", "Confirmação de Exclusão", JOptionPane.YES_NO_OPTION);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    // Obtém o ID do produto selecionado na tabela
+                    int selectedRow = table.getSelectedRow();
+                    if (selectedRow >= 0) {
+                        int productId = (int) model.getValueAt(selectedRow, 0);
+
+                        try (Connection conn = ds.getConnection()) {
+                            String deleteQuery = "DELETE FROM Produtos WHERE id = ?";
+                            PreparedStatement statement = conn.prepareStatement(deleteQuery);
+                            statement.setInt(1, productId);
+                            int rowsAffected = statement.executeUpdate();
+                            if (rowsAffected > 0) {
+                                JOptionPane.showMessageDialog(panel, "Produto excluído com sucesso.");
+                                model.removeRow(selectedRow); // Remove a linha da tabela após a exclusão
+                            } else {
+                                JOptionPane.showMessageDialog(panel, "Erro ao excluir produto.", "Erro", JOptionPane.ERROR_MESSAGE);
+                            }
+                        } catch (SQLException ex) {
+                            ex.printStackTrace();
+                            JOptionPane.showMessageDialog(panel, "Erro ao excluir produto.", "Erro", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(panel, "Nenhum produto selecionado para exclusão.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            }
+        });
+
 
         return panel;
     }
@@ -262,7 +343,8 @@ public class ProductRegistrationGUI {
                 String name = rs.getString("name");
                 int quantidade = rs.getInt("quantidade");
                 float preco = rs.getFloat("preco");
-                model.addRow(new Object[]{id, name, quantidade, preco});
+                int pontos = rs.getInt("pontos_resgate");
+                model.addRow(new Object[]{id, name, quantidade, preco, pontos});
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -270,7 +352,123 @@ public class ProductRegistrationGUI {
         }
     }
 
+    private static JPanel createUpdateProductPanel(MysqlDataSource ds, String id, String name, String quantidade, String preco, String pontos) {
+        JPanel panel = new JPanel(new GridBagLayout());
 
+        JLabel nameLabel = new JLabel("Nome:");
+        JTextField nameField = new JTextField(20);
+        JLabel quantidadeLabel = new JLabel("Quantidade:");
+        JTextField quantidadeField = new JTextField(20);
+        JLabel precoLabel = new JLabel("Preço:");
+        JTextField precoField = new JTextField(20);
+        JLabel pontosLabel = new JLabel("Pontos para Resgate:");
+        JTextField pontosField = new JTextField(20);
+        JButton updateButton = new JButton("Atualizar Produto");
+
+        // Preenche os campos com os valores atuais do produto
+        nameField.setText(name);
+        quantidadeField.setText(quantidade);
+        precoField.setText(preco);
+        pontosField.setText(pontos);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(5, 5, 5, 5);
+        panel.add(nameLabel, gbc);
+
+        gbc.gridx++;
+        panel.add(nameField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy++;
+        panel.add(quantidadeLabel, gbc);
+
+        gbc.gridx++;
+        panel.add(quantidadeField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy++;
+        panel.add(precoLabel, gbc);
+
+        gbc.gridx++;
+        panel.add(precoField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy++;
+        panel.add(pontosLabel, gbc);
+
+        gbc.gridx++;
+        panel.add(pontosField, gbc);
+
+        gbc.gridy++;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+        panel.add(updateButton, gbc);
+
+        updateButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                String name = nameField.getText();
+                String quantidadeStr = quantidadeField.getText();
+                String precoStr = precoField.getText();
+                String pontosStr = pontosField.getText();
+
+                if (name.isEmpty() || quantidadeStr.isEmpty() || precoStr.isEmpty() || pontosStr.isEmpty()) {
+                    JOptionPane.showMessageDialog(panel, "Preencha todos os campos.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                int quantidade;
+                float preco;
+                int pontosResgate;
+
+                try {
+                    quantidade = Integer.parseInt(quantidadeStr);
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(panel, "Quantidade deve ser um número inteiro.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                try {
+                    preco = Float.parseFloat(precoStr.replace(",", "."));
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(panel, "Preço deve ser um número decimal.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                try {
+                    pontosResgate = Integer.parseInt(pontosStr);
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(panel, "Pontos para resgate devem ser um número inteiro.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                try (Connection conn = ds.getConnection()) {
+                    String updateQuery = "UPDATE Produtos SET name = ?, quantidade = ?, preco = ?, pontos_resgate = ? WHERE id = ?";
+                    PreparedStatement statement = conn.prepareStatement(updateQuery);
+                    statement.setString(1, name);
+                    statement.setInt(2, quantidade);
+                    statement.setFloat(3, preco);
+                    statement.setInt(4, pontosResgate);
+                    statement.setString(5, id);
+                    int rowsAffected = statement.executeUpdate();
+                    if (rowsAffected > 0) {
+                        JOptionPane.showMessageDialog(panel, rowsAffected + " produto(s) atualizado(s) com sucesso.");
+                    } else {
+                        JOptionPane.showMessageDialog(panel, "Produto não encontrado.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(panel, "Erro ao atualizar produto.", "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        return panel;
+    }
+
+    
     private static JPanel createDeleteProductPanel(MysqlDataSource ds) {
         JPanel panel = new JPanel(new GridBagLayout());
 
@@ -325,152 +523,4 @@ public class ProductRegistrationGUI {
         return panel;
     }
 
-    private static JPanel createUpdateProductPanel(MysqlDataSource ds) {
-        JPanel panel = new JPanel(new GridBagLayout());
-
-        JLabel idLabel = new JLabel("ID do Produto:");
-        JTextField idField = new JTextField(10);
-        JButton searchButton = new JButton("Buscar");
-        JLabel nameLabel = new JLabel("Nome:");
-        JTextField nameField = new JTextField(20);
-        JLabel quantidadeLabel = new JLabel("Quantidade:");
-        JTextField quantidadeField = new JTextField(20);
-        JLabel precoLabel = new JLabel("Preço:");
-        JTextField precoField = new JTextField(20);
-        JButton updateButton = new JButton("Atualizar Produto");
-
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.insets = new Insets(5, 5, 5, 5);
-        panel.add(idLabel, gbc);
-
-        gbc.gridx++;
-        panel.add(idField, gbc);
-
-        gbc.gridx++;
-        panel.add(searchButton, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy++;
-        panel.add(nameLabel, gbc);
-
-        gbc.gridx++;
-        panel.add(nameField, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy++;
-        panel.add(quantidadeLabel, gbc);
-
-        gbc.gridx++;
-        panel.add(quantidadeField, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy++;
-        panel.add(precoLabel, gbc);
-
-        gbc.gridx++;
-        panel.add(precoField, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.gridwidth = 3;
-        gbc.anchor = GridBagConstraints.CENTER;
-        panel.add(updateButton, gbc);
-
-        searchButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                int productId;
-
-                try {
-                    productId = Integer.parseInt(idField.getText());
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(panel, "ID deve ser um número inteiro.", "Erro", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                try (Connection conn = ds.getConnection()) {
-                    String selectQuery = "SELECT * FROM Produtos WHERE id = ?";
-                    PreparedStatement statement = conn.prepareStatement(selectQuery);
-                    statement.setInt(1, productId);
-                    ResultSet resultSet = statement.executeQuery();
-
-                    if (resultSet.next()) {
-                        nameField.setText(resultSet.getString("name"));
-                        quantidadeField.setText(Integer.toString(resultSet.getInt("quantidade")));
-                        precoField.setText(Float.toString(resultSet.getFloat("preco")));
-                    } else {
-                        JOptionPane.showMessageDialog(panel, "Produto não encontrado.", "Erro", JOptionPane.ERROR_MESSAGE);
-                    }
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                    JOptionPane.showMessageDialog(panel, "Erro ao buscar produto.", "Erro", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
-
-        updateButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                int productId;
-                String name = nameField.getText();
-                String quantidadeStr = quantidadeField.getText();
-                String precoStr = precoField.getText();
-
-                if (name.isEmpty() || quantidadeStr.isEmpty() || precoStr.isEmpty()) {
-                    JOptionPane.showMessageDialog(panel, "Preencha todos os campos.", "Erro", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                int quantidade;
-                float preco;
-
-                try {
-                    productId = Integer.parseInt(idField.getText());
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(panel, "ID deve ser um número inteiro.", "Erro", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                try {
-                    quantidade = Integer.parseInt(quantidadeStr);
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(panel, "Quantidade deve ser um número inteiro.", "Erro", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                try {
-                    preco = Float.parseFloat(precoStr.replace(",", "."));
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(panel, "Preço deve ser um número decimal.", "Erro", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                if (quantidade < 0) {
-                    JOptionPane.showMessageDialog(panel, "Quantidade não pode ser negativa.", "Erro", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                try (Connection conn = ds.getConnection()) {
-                    String updateQuery = "UPDATE Produtos SET name = ?, quantidade = ?, preco = ? WHERE id = ?";
-                    PreparedStatement statement = conn.prepareStatement(updateQuery);
-                    statement.setString(1, name);
-                    statement.setInt(2, quantidade);
-                    statement.setFloat(3, preco);
-                    statement.setInt(4, productId);
-                    int rowsAffected = statement.executeUpdate();
-                    if (rowsAffected > 0) {
-                        JOptionPane.showMessageDialog(panel, rowsAffected + " produto(s) atualizado(s) com sucesso.");
-                    } else {
-                        JOptionPane.showMessageDialog(panel, "Produto não encontrado.", "Erro", JOptionPane.ERROR_MESSAGE);
-                    }
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                    JOptionPane.showMessageDialog(panel, "Erro ao atualizar produto.", "Erro", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
-
-        return panel;
-    }
 }

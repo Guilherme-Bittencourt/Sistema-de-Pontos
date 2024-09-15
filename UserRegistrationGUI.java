@@ -266,7 +266,7 @@ public class UserRegistrationGUI {
                 }
 
                 try (Connection conn = ds.getConnection()) {
-                    String selectQuery = "SELECT id, username, telefone, endereço FROM Clientes WHERE telefone = ? OR CPF = ?";
+                    String selectQuery = "SELECT id, username, telefone, endereço, pontos FROM Clientes WHERE telefone = ? OR CPF = ?";
                     PreparedStatement statement = conn.prepareStatement(selectQuery);
                     statement.setString(1, searchQuery);
                     statement.setString(2, searchQuery);
@@ -278,7 +278,8 @@ public class UserRegistrationGUI {
                         String name = resultSet.getString("username");
                         String phone = resultSet.getString("telefone");
                         String address = resultSet.getString("endereço");
-                        model.addRow(new Object[]{id, name, phone, address});
+                        int pontos = resultSet.getInt("pontos");
+                        model.addRow(new Object[]{id, name, phone, address, pontos});
                     }
 
                     if (model.getRowCount() == 0) {
@@ -400,11 +401,11 @@ public class UserRegistrationGUI {
         JTextField phoneField = new JTextField(20);
         JLabel addressLabel = new JLabel("Endereço:");
         JTextField addressField = new JTextField(20);
-        JLabel cpfLabel = new JLabel("CPF:");
         JTextField cpfField = new JTextField(20);
         JButton updateButton = new JButton("Atualizar Usuário");
 
         // Inicializa os campos com os dados fornecidos
+        searchField.setText(phone);
         nameField.setText(name);
         phoneField.setText(phone);
         addressField.setText(address);
@@ -443,13 +444,6 @@ public class UserRegistrationGUI {
 
         gbc.gridx++;
         panel.add(addressField, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy++;
-        panel.add(cpfLabel, gbc);
-
-        gbc.gridx++;
-        panel.add(cpfField, gbc);
 
         gbc.gridy++;
         gbc.gridwidth = 2;
@@ -521,6 +515,7 @@ public class UserRegistrationGUI {
 
         return panel;
     }
+
 
 
 

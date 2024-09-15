@@ -6,6 +6,7 @@
 /BudgetGUI$3.class
 /BudgetGUI$4.class
 /BudgetGUI.class
+/Clientes.db
 /Fidelity.db
 /MenuGUI$1.class
 /MenuGUI$2.class
@@ -20,6 +21,7 @@
 /ProductRegistrationGUI$6.class
 /ProductRegistrationGUI$7.class
 /ProductRegistrationGUI.class
+/Produtos.db
 /README.md
 /UserRegistrationGUI$1.class
 /UserRegistrationGUI$10.class
@@ -35,3 +37,8 @@
 /UserRegistrationGUI$8.class
 /UserRegistrationGUI$9.class
 /UserRegistrationGUI.class
+/BudgetGUI$5.class
+/ProductRegistrationGUI$10.class
+/ProductRegistrationGUI$8.class
+/ProductRegistrationGUI$9.class
+/BudgetGUI$1$1.class
