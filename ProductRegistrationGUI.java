@@ -3,30 +3,36 @@ import java.awt.event.*;
 import java.sql.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import org.sqlite.SQLiteDataSource;
+import com.mysql.cj.jdbc.MysqlDataSource;
+
 
 public class ProductRegistrationGUI {
     public static void main(String[] args) {
         // Configuração da fonte de dados SQLite
-        SQLiteDataSource ds = new SQLiteDataSource();
-        ds.setUrl("jdbc:sqlite:Produtos.db");
-
+    	MysqlDataSource ds = new MysqlDataSource();
+        ds.setUrl("jdbc:mysql://10.0.0.109:3306/Fidelity"); // Substitua 'seu_banco_de_dados' pelo nome do seu banco de dados
+        ds.setUser("dba"); // Substitua 'seu_usuario' pelo seu usuário MySQL
+        ds.setPassword("admin123"); // Substitua 'sua_senha' pela sua senha MySQL
+        
         try (Connection connection = ds.getConnection(); Statement statement = connection.createStatement()) {
-            // Criação da tabela 'Produtos'
-            String createTableSQL = "CREATE TABLE IF NOT EXISTS Produtos ("
-                    + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    + "name TEXT NOT NULL, "
-                    + "quantidade INTEGER NOT NULL, "
-                    + "preco FLOAT NOT NULL)";
-            statement.execute(createTableSQL);
-            System.out.println("Tabela 'Produtos' criada com sucesso.");
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        SwingUtilities.invokeLater(() -> createAndShowGUI(ds));
+            // Criação da tabela 'Produtos' se não existir
+        	String createTableSQL = "CREATE TABLE IF NOT EXISTS Produtos ("
+                    + "id INT AUTO_INCREMENT PRIMARY KEY, "
+                    + "name VARCHAR(255) NOT NULL, "
+                    + "quantidade INT NOT NULL, "
+                    + "preco DECIMAL(10, 2) NOT NULL)";
+    statement.execute(createTableSQL);
+    System.out.println("Tabela 'Produtos' criada com sucesso.");
+    } catch (SQLException e) {
+        e.printStackTrace();
     }
 
-    private static void createAndShowGUI(SQLiteDataSource ds) {
+
+        // Iniciar a GUI de registro de usuário
+            SwingUtilities.invokeLater(() -> createAndShowGUI(ds));
+    }
+
+    private static void createAndShowGUI(MysqlDataSource ds) {
         JFrame frame = new JFrame("Gerenciador de Produtos");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(400, 550); // Ajuste o tamanho aqui
@@ -43,7 +49,7 @@ public class ProductRegistrationGUI {
         frame.setVisible(true);
     }
 
-    private static JPanel createCreateProductPanel(JFrame frame, SQLiteDataSource ds) {
+    private static JPanel createCreateProductPanel(JFrame frame, MysqlDataSource ds) {
         JPanel panel = new JPanel(new GridBagLayout());
 
         JLabel nameLabel = new JLabel("Nome:");
@@ -147,7 +153,7 @@ public class ProductRegistrationGUI {
         return panel;
     }
 
-    private static JPanel createListProductPanel(SQLiteDataSource ds) {
+    private static JPanel createListProductPanel(MysqlDataSource ds) {
         JPanel panel = new JPanel(new GridBagLayout());
 
         JLabel searchLabel = new JLabel("Buscar (Nome):");
@@ -224,7 +230,7 @@ public class ProductRegistrationGUI {
         return panel;
     }
 
-    private static void showPasswordDialogAndListProducts(SQLiteDataSource ds, DefaultTableModel model) {
+    private static void showPasswordDialogAndListProducts(MysqlDataSource ds, DefaultTableModel model) {
         JPasswordField passwordField = new JPasswordField(20);
         JPanel passwordPanel = new JPanel();
         passwordPanel.add(new JLabel("Digite a senha para listar todos os produtos:"));
@@ -243,7 +249,7 @@ public class ProductRegistrationGUI {
         }
     }
 
-    private static void listProducts(SQLiteDataSource ds, DefaultTableModel model) {
+    private static void listProducts(MysqlDataSource ds, DefaultTableModel model) {
         // Limpa a tabela
         model.setRowCount(0);
 
@@ -265,7 +271,7 @@ public class ProductRegistrationGUI {
     }
 
 
-    private static JPanel createDeleteProductPanel(SQLiteDataSource ds) {
+    private static JPanel createDeleteProductPanel(MysqlDataSource ds) {
         JPanel panel = new JPanel(new GridBagLayout());
 
         JLabel idLabel = new JLabel("ID do Produto:");
@@ -319,7 +325,7 @@ public class ProductRegistrationGUI {
         return panel;
     }
 
-    private static JPanel createUpdateProductPanel(SQLiteDataSource ds) {
+    private static JPanel createUpdateProductPanel(MysqlDataSource ds) {
         JPanel panel = new JPanel(new GridBagLayout());
 
         JLabel idLabel = new JLabel("ID do Produto:");

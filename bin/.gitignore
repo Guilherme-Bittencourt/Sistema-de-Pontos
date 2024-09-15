@@ -1,18 +1,31 @@
-<<<<<<< HEAD
-/menugui.class
-/MenuGUI.class
-/UserRegistrationGUI.class
-/ProductRegistrationGUI.class
-/BudgetGUI.class
+/.metadata/
+/.project
+/.settings/
 /BudgetGUI$1.class
+/BudgetGUI$2.class
+/BudgetGUI$3.class
+/BudgetGUI$4.class
+/BudgetGUI.class
+/Fidelity.db
 /MenuGUI$1.class
 /MenuGUI$2.class
 /MenuGUI$3.class
 /MenuGUI$4.class
+/MenuGUI.class
 /ProductRegistrationGUI$1.class
-=======
->>>>>>> c87f125bb3aab45c0ef82a0305b1f8af8ed11a43
+/ProductRegistrationGUI$2.class
+/ProductRegistrationGUI$3.class
+/ProductRegistrationGUI$4.class
+/ProductRegistrationGUI$5.class
+/ProductRegistrationGUI$6.class
+/ProductRegistrationGUI$7.class
+/ProductRegistrationGUI.class
+/README.md
 /UserRegistrationGUI$1.class
+/UserRegistrationGUI$10.class
+/UserRegistrationGUI$11.class
+/UserRegistrationGUI$12.class
+/UserRegistrationGUI$13.class
 /UserRegistrationGUI$2.class
 /UserRegistrationGUI$3.class
 /UserRegistrationGUI$4.class
@@ -21,23 +34,4 @@
 /UserRegistrationGUI$7.class
 /UserRegistrationGUI$8.class
 /UserRegistrationGUI$9.class
-<<<<<<< HEAD
-/ProductRegistrationGUI$2.class
-/UserRegistrationGUI$10.class
-/ProductRegistrationGUI$3.class
-/UserRegistrationGUI$11.class
-/ProductRegistrationGUI$4.class
-/ProductRegistrationGUI$5.class
-/ProductRegistrationGUI$6.class
-/ProductRegistrationGUI$3$1.class
-/ProductRegistrationGUI$7.class
-/ProductRegistrationGUI$8.class
-/BudgetGUI$2.class
-/BudgetGUI$3.class
-/BudgetGUI$4.class
-/BudgetGUI$5.class
-/BudgetGUI$6.class
-=======
 /UserRegistrationGUI.class
-/UserRegistrationGUI$10.class
->>>>>>> c87f125bb3aab45c0ef82a0305b1f8af8ed11a43

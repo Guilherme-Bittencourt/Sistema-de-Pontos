@@ -3,37 +3,40 @@ import java.awt.event.*;
 import java.sql.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import org.sqlite.SQLiteDataSource;
+import com.mysql.cj.jdbc.MysqlDataSource;
+import org.mindrot.jbcrypt.BCrypt;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class BudgetGUI {
     public static void main(String[] args) {
-        SQLiteDataSource dsClients = new SQLiteDataSource();
-        dsClients.setUrl("jdbc:sqlite:Clientes.db");
-        SQLiteDataSource dsProducts = new SQLiteDataSource();
-        dsProducts.setUrl("jdbc:sqlite:Produtos.db");
+    	MysqlDataSource ds = new MysqlDataSource();
+        ds.setUrl("jdbc:mysql://10.0.0.109:3306/Fidelity"); // Substitua 'seu_banco_de_dados' pelo nome do seu banco de dados
+        ds.setUser("dba"); // Substitua 'seu_usuario' pelo seu usuário MySQL
+        ds.setPassword("admin123"); // Substitua 'sua_senha' pela sua senha MySQL
         
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                createAndShowGUI(dsClients, dsProducts);
+                createAndShowGUI(ds);
             }
         });
     }
 
-    private static void createAndShowGUI(SQLiteDataSource dsClients, SQLiteDataSource dsProducts) {
+    private static void createAndShowGUI(MysqlDataSource ds) {
         JFrame frame = new JFrame("Orçamento");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(400, 750);
         frame.setLocationRelativeTo(null);
 
         JTabbedPane tabbedPane = new JTabbedPane();
-        tabbedPane.addTab("Orçamento", createBudgetPanel(frame, dsClients, dsProducts));
+        tabbedPane.addTab("Orçamento", createBudgetPanel(frame, ds));
 
         frame.getContentPane().add(tabbedPane);
         frame.pack();
         frame.setVisible(true);
     }
 
-    private static JPanel createBudgetPanel(JFrame frame, SQLiteDataSource dsClients, SQLiteDataSource dsProducts) {
+    private static JPanel createBudgetPanel(JFrame frame, MysqlDataSource ds) {
         JPanel panel = new JPanel(new GridBagLayout());
 
         JLabel nameLabel = new JLabel("Digite o CPF ou Telefone do Cliente:");
@@ -105,7 +108,7 @@ public class BudgetGUI {
                 return;
             }
 
-            try (Connection conn = dsClients.getConnection()) {
+            try (Connection conn = ds.getConnection()) {
                 String selectQuery = "SELECT * FROM Clientes WHERE CPF = ? OR telefone = ?";
                 PreparedStatement statement = conn.prepareStatement(selectQuery);
                 statement.setString(1, searchQuery);
@@ -134,7 +137,7 @@ public class BudgetGUI {
                 JTextField quantityField = new JTextField(5);
 
                 // Preenche o JComboBox com os nomes dos produtos
-                try (Connection conn = dsProducts.getConnection(); Statement stmt = conn.createStatement()) {
+                try (Connection conn = ds.getConnection(); Statement stmt = conn.createStatement()) {
                     ResultSet rs = stmt.executeQuery("SELECT name FROM Produtos");
                     while (rs.next()) {
                         productComboBox.addItem(rs.getString("name"));
@@ -171,7 +174,7 @@ public class BudgetGUI {
                     }
 
                     // Verifica a disponibilidade do produto
-                    try (Connection conn = dsProducts.getConnection()) {
+                    try (Connection conn = ds.getConnection()) {
                         String checkQuery = "SELECT quantidade, preco FROM Produtos WHERE name = ?";
                         PreparedStatement checkStmt = conn.prepareStatement(checkQuery);
                         checkStmt.setString(1, productName);
@@ -235,6 +238,33 @@ public class BudgetGUI {
         int roundedPoints = (int) Math.round(points);
         return roundedPoints;
     }
-    
+    private String hashSenha(String senha) {
+        return BCrypt.hashpw(senha, BCrypt.gensalt());
+    }
+
+    // Método para verificar a senha
+    public boolean checkPassword(String senhaDigitada, String hashedSenha) {
+        return BCrypt.checkpw(senhaDigitada, hashedSenha);
+    }
+
+    // Método para criptografar o CPF usando SHA-256
+    private String hashCPF(String cpf) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(cpf.getBytes());
+            StringBuilder hexString = new StringBuilder();
+
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+
+            return hexString.toString();
+
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
 
