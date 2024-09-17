@@ -25,6 +25,7 @@ public class MenuGUI {
         JButton pointsSystemButton = new JButton("Sistema de Pontos");
         JButton productManagerButton = new JButton("Lista de Produtos");
         JButton budgetButton = new JButton("Resgate de Produtos");
+        JButton historicoButton = new JButton("Histórico de Ações"); // Novo botão
 
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -35,6 +36,9 @@ public class MenuGUI {
 
         gbc.gridy++;
         panel.add(budgetButton, gbc);
+
+        gbc.gridy++;
+        panel.add(historicoButton, gbc); // Adicionando o botão do histórico
 
         pointsSystemButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -54,6 +58,13 @@ public class MenuGUI {
             public void actionPerformed(ActionEvent e) {
                 frame.dispose(); // Fecha o Menu Principal
                 BudgetGUI.main(null); // Abre o Orçamento
+            }
+        });
+
+        historicoButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                frame.dispose(); // Fecha o Menu Principal
+                HistoricoGUI.main(null); // Abre o Histórico de Ações
             }
         });
 

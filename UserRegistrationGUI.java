@@ -80,7 +80,7 @@ public class UserRegistrationGUI {
         tabbedPane.addTab("Listar Usuários", createListClientesPanel(ds));
         tabbedPane.addTab("Atualizar Usuário", createUpdateUserPanel(ds, "", "", "", ""));
         tabbedPane.addTab("Atribuir Pontos", createAssignPointsPanel(ds));
-
+        
         frame.getContentPane().add(tabbedPane);
         frame.pack();
         frame.setVisible(true);
@@ -149,49 +149,41 @@ public class UserRegistrationGUI {
                 String address = addressField.getText();
                 String cpf = cpfField.getText();
 
-                if (name.isEmpty() || address.isEmpty() || phone.isEmpty() || cpf.isEmpty()) {
+                if (name.isEmpty() || phone.isEmpty() || address.isEmpty() || cpf.isEmpty()) {
                     JOptionPane.showMessageDialog(panel, "Preencha todos os campos.", "Erro", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
-                if (phone.length() < 9 || phone.length() > 11) {
-                    JOptionPane.showMessageDialog(panel, "O telefone deve ter entre 9 e 11 dígitos.", "Erro", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                if (cpf.length() != 11) {
-                    JOptionPane.showMessageDialog(panel, "O CPF deve ter 11 dígitos.", "Erro", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
                 try (Connection conn = ds.getConnection()) {
-                    // Verificação de duplicidade de CPF e telefone
-                    String checkQuery = "SELECT COUNT(*) FROM Clientes WHERE CPF = ? OR telefone = ?";
-                    PreparedStatement checkStatement = conn.prepareStatement(checkQuery);
-                    String encryptedCpf = encrypt(cpf, generateKey()); // Criptografa o CPF
-                    checkStatement.setString(1, encryptedCpf);
-                    checkStatement.setString(2, phone);
-                    ResultSet checkResultSet = checkStatement.executeQuery();
-                    checkResultSet.next();
-                    int count = checkResultSet.getInt(1);
-                    if (count > 0) {
-                        JOptionPane.showMessageDialog(panel, "CPF ou Telefone já cadastrado.", "Erro", JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
+                    // Criptografando o CPF
+                    SecretKey key = generateKey();
+                    String encryptedCpf = encrypt(cpf, key);
+                    String keyEncoded = Base64.getEncoder().encodeToString(key.getEncoded());
 
-                    // Inserir o CPF criptografado
                     String insertQuery = "INSERT INTO Clientes (username, telefone, endereço, CPF, `key`) VALUES (?, ?, ?, ?, ?)";
                     PreparedStatement statement = conn.prepareStatement(insertQuery);
                     statement.setString(1, name);
                     statement.setString(2, phone);
                     statement.setString(3, address);
                     statement.setString(4, encryptedCpf);
-                    statement.setString(5, Base64.getEncoder().encodeToString(generateKey().getEncoded())); // Armazena a chave criptografada
+                    statement.setString(5, keyEncoded);
                     int rowsAffected = statement.executeUpdate();
-                    JOptionPane.showMessageDialog(panel, rowsAffected + " registro inserido com sucesso.");
+
+                    if (rowsAffected > 0) {
+                        JOptionPane.showMessageDialog(panel, "Cliente adicionado com sucesso.");
+
+                        // Adiciona ao histórico
+                        String historicoQuery = "INSERT INTO Historico (tipo_acao, descricao) VALUES (?, ?)";
+                        PreparedStatement historicoStmt = conn.prepareStatement(historicoQuery);
+                        historicoStmt.setString(1, "Criação de Cliente");
+                        historicoStmt.setString(2, "Usuário " + name + " foi criado com CPF criptografado.");
+                        historicoStmt.executeUpdate();
+                    } else {
+                        JOptionPane.showMessageDialog(panel, "Erro ao adicionar cliente.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    }
                 } catch (Exception ex) {
                     ex.printStackTrace();
-                    JOptionPane.showMessageDialog(panel, "Erro ao adicionar usuário.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(panel, "Erro ao adicionar cliente.", "Erro", JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
@@ -211,7 +203,7 @@ public class UserRegistrationGUI {
     private static JPanel createListClientesPanel(MysqlDataSource ds) {
         JPanel panel = new JPanel(new GridBagLayout());
 
-        JLabel searchLabel = new JLabel("Buscar (CPF ou Telefone):");
+        JLabel searchLabel = new JLabel("Buscar (Telefone):");
         JTextField searchField = new JTextField(20);
         JButton searchButton = new JButton("Buscar");
         JButton listButton = new JButton("Listar Todos");
@@ -258,22 +250,26 @@ public class UserRegistrationGUI {
 
         searchButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                String searchQuery = searchField.getText();
+                String searchQuery = searchField.getText(); // Obtém o valor digitado no campo de busca
 
                 if (searchQuery.isEmpty()) {
-                    JOptionPane.showMessageDialog(panel, "Digite o CPF ou Telefone para buscar.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(panel, "Digite o Telefone para buscar.", "Erro", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
                 try (Connection conn = ds.getConnection()) {
-                    String selectQuery = "SELECT id, username, telefone, endereço, pontos FROM Clientes WHERE telefone = ? OR CPF = ?";
+                    // Query para buscar o cliente com base apenas no telefone
+                    String selectQuery = "SELECT id, username, telefone, endereço, pontos FROM Clientes WHERE telefone = ?";
                     PreparedStatement statement = conn.prepareStatement(selectQuery);
-                    statement.setString(1, searchQuery);
-                    statement.setString(2, searchQuery);
+                    statement.setString(1, searchQuery); // Tenta buscar por telefone
                     ResultSet resultSet = statement.executeQuery();
                     model.setRowCount(0); // Limpar a tabela
 
+                    boolean foundUser = false;
+
                     while (resultSet.next()) {
+                        // Se o telefone corresponder, atualizamos a interface
+                        foundUser = true;
                         int id = resultSet.getInt("id");
                         String name = resultSet.getString("username");
                         String phone = resultSet.getString("telefone");
@@ -282,15 +278,19 @@ public class UserRegistrationGUI {
                         model.addRow(new Object[]{id, name, phone, address, pontos});
                     }
 
-                    if (model.getRowCount() == 0) {
+                    if (!foundUser) {
                         JOptionPane.showMessageDialog(panel, "Nenhum usuário encontrado.", "Aviso", JOptionPane.INFORMATION_MESSAGE);
                     }
+
                 } catch (SQLException ex) {
                     ex.printStackTrace();
                     JOptionPane.showMessageDialog(panel, "Erro ao carregar usuários.", "Erro", JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
+
+
+
 
         listButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -355,31 +355,42 @@ public class UserRegistrationGUI {
 
         deleteButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                // Solicita confirmação antes de excluir
-                int confirm = JOptionPane.showConfirmDialog(panel, "Você realmente deseja excluir este usuário?", "Confirmação de Exclusão", JOptionPane.YES_NO_OPTION);
+                // Alterando o ícone de confirmação para o ícone de erro (vermelho)
+                int confirm = JOptionPane.showConfirmDialog(panel, 
+                        "Você realmente deseja excluir este cliente?", 
+                        "Confirmação de Exclusão", 
+                        JOptionPane.YES_NO_OPTION, 
+                        JOptionPane.ERROR_MESSAGE); // Ícone de erro em vermelho
                 if (confirm == JOptionPane.YES_OPTION) {
-                    // Obtém o ID do usuário selecionado na tabela
                     int selectedRow = table.getSelectedRow();
                     if (selectedRow >= 0) {
                         int userId = (int) model.getValueAt(selectedRow, 0);
+                        String userName = (String) model.getValueAt(selectedRow, 1);
 
                         try (Connection conn = ds.getConnection()) {
                             String deleteQuery = "DELETE FROM Clientes WHERE id = ?";
                             PreparedStatement statement = conn.prepareStatement(deleteQuery);
                             statement.setInt(1, userId);
                             int rowsAffected = statement.executeUpdate();
+
                             if (rowsAffected > 0) {
-                                JOptionPane.showMessageDialog(panel, "Usuário excluído com sucesso.");
+                                JOptionPane.showMessageDialog(panel, "Cliente excluído com sucesso.");
+
+                                // Adiciona ao histórico
+                                String historicoQuery = "INSERT INTO Historico (tipo_acao, descricao) VALUES (?, ?)";
+                                PreparedStatement historicoStmt = conn.prepareStatement(historicoQuery);
+                                historicoStmt.setString(1, "Exclusão de Cliente");
+                                historicoStmt.setString(2, "Usuário " + userName + " (ID: " + userId + ") foi excluído.");
+                                historicoStmt.executeUpdate();
+
                                 model.removeRow(selectedRow);
                             } else {
-                                JOptionPane.showMessageDialog(panel, "Erro ao excluir usuário.", "Erro", JOptionPane.ERROR_MESSAGE);
+                                JOptionPane.showMessageDialog(panel, "Erro ao excluir cliente.", "Erro", JOptionPane.ERROR_MESSAGE);
                             }
                         } catch (SQLException ex) {
                             ex.printStackTrace();
-                            JOptionPane.showMessageDialog(panel, "Erro ao excluir usuário.", "Erro", JOptionPane.ERROR_MESSAGE);
+                            JOptionPane.showMessageDialog(panel, "Erro ao excluir cliente.", "Erro", JOptionPane.ERROR_MESSAGE);
                         }
-                    } else {
-                        JOptionPane.showMessageDialog(panel, "Nenhum usuário selecionado para exclusão.", "Erro", JOptionPane.ERROR_MESSAGE);
                     }
                 }
             }
@@ -392,7 +403,7 @@ public class UserRegistrationGUI {
     private static JPanel createUpdateUserPanel(MysqlDataSource ds, String name, String phone, String address, String cpf) {
         JPanel panel = new JPanel(new GridBagLayout());
 
-        JLabel searchLabel = new JLabel("Buscar (CPF ou Telefone):");
+        JLabel searchLabel = new JLabel("Buscar (Telefone):");
         JTextField searchField = new JTextField(20);
         JButton searchButton = new JButton("Buscar");
         JLabel nameLabel = new JLabel("Nome:");
@@ -455,7 +466,7 @@ public class UserRegistrationGUI {
                 String searchQuery = searchField.getText();
 
                 if (searchQuery.isEmpty()) {
-                    JOptionPane.showMessageDialog(panel, "Digite o CPF ou Telefone para buscar.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(panel, "Digite o Telefone para buscar.", "Erro", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
@@ -489,29 +500,56 @@ public class UserRegistrationGUI {
                 String cpf = cpfField.getText();
 
                 if (name.isEmpty() || phone.isEmpty() || address.isEmpty() || cpf.isEmpty()) {
-                    JOptionPane.showMessageDialog(panel, "Todos os campos devem ser preenchidos.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(panel, "Preencha todos os campos.", "Erro", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
                 try (Connection conn = ds.getConnection()) {
-                    String updateQuery = "UPDATE Clientes SET username = ?, telefone = ?, endereço = ? WHERE CPF = ?";
-                    PreparedStatement statement = conn.prepareStatement(updateQuery);
-                    statement.setString(1, name);
-                    statement.setString(2, phone);
-                    statement.setString(3, address);
-                    statement.setString(4, cpf);
-                    int rowsAffected = statement.executeUpdate();
-                    if (rowsAffected > 0) {
-                        JOptionPane.showMessageDialog(panel, "Usuário atualizado com sucesso.");
+                    // Descriptografar CPF antes da atualização
+                    String selectQuery = "SELECT CPF, `key` FROM Clientes WHERE CPF = ?";
+                    PreparedStatement selectStatement = conn.prepareStatement(selectQuery);
+                    selectStatement.setString(1, cpf);
+                    ResultSet rs = selectStatement.executeQuery();
+
+                    if (rs.next()) {
+                        String encryptedCpf = rs.getString("CPF");
+                        String keyEncoded = rs.getString("key");
+                        SecretKey key = new SecretKeySpec(Base64.getDecoder().decode(keyEncoded), "AES");
+
+                        String decryptedCpf = decrypt(encryptedCpf, key);
+
+                        // Atualiza o cliente
+                        String updateQuery = "UPDATE Clientes SET username = ?, telefone = ?, endereço = ? WHERE CPF = ?";
+                        PreparedStatement statement = conn.prepareStatement(updateQuery);
+                        statement.setString(1, name);
+                        statement.setString(2, phone);
+                        statement.setString(3, address);
+                        statement.setString(4, encryptedCpf);
+                        int rowsAffected = statement.executeUpdate();
+
+                        if (rowsAffected > 0) {
+                            JOptionPane.showMessageDialog(panel, "Cliente atualizado com sucesso.");
+
+                            // Adiciona ao histórico
+                            String historicoQuery = "INSERT INTO Historico (tipo_acao, descricao) VALUES (?, ?)";
+                            PreparedStatement historicoStmt = conn.prepareStatement(historicoQuery);
+                            historicoStmt.setString(1, "Atualização de Cliente");
+                            historicoStmt.setString(2, "Usuário com CPF: " + decryptedCpf + " foi atualizado.");
+                            historicoStmt.executeUpdate();
+                        } else {
+                            JOptionPane.showMessageDialog(panel, "Erro ao atualizar cliente.", "Erro", JOptionPane.ERROR_MESSAGE);
+                        }
                     } else {
-                        JOptionPane.showMessageDialog(panel, "Erro ao atualizar usuário.", "Erro", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(panel, "Cliente não encontrado.", "Erro", JOptionPane.ERROR_MESSAGE);
                     }
-                } catch (SQLException ex) {
+                } catch (Exception ex) {
                     ex.printStackTrace();
-                    JOptionPane.showMessageDialog(panel, "Erro ao atualizar usuário.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(panel, "Erro ao atualizar cliente.", "Erro", JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
+
+
 
         return panel;
     }
@@ -524,7 +562,7 @@ public class UserRegistrationGUI {
     private static JPanel createAssignPointsPanel(MysqlDataSource ds) {
         JPanel panel = new JPanel(new GridBagLayout());
 
-        JLabel idLabel = new JLabel("CPF ou Telefone do Usuário:");
+        JLabel idLabel = new JLabel("Telefone do Usuário:");
         JButton searchButton = new JButton("Buscar");
 
         JLabel purchaseLabel = new JLabel("Valor da Compra:");
@@ -589,15 +627,15 @@ public class UserRegistrationGUI {
                 String searchQuery = searchField.getText();
 
                 if (searchQuery.isEmpty()) {
-                    JOptionPane.showMessageDialog(panel, "Digite o CPF ou Telefone para buscar.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(panel, "Digite o Telefone para buscar.", "Erro", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
                 try (Connection conn = ds.getConnection()) {
-                    String selectQuery = "SELECT * FROM Clientes WHERE CPF = ? OR telefone = ?";
+                    // Query para buscar o cliente com base apenas no telefone
+                    String selectQuery = "SELECT * FROM Clientes WHERE telefone = ?";
                     PreparedStatement statement = conn.prepareStatement(selectQuery);
-                    statement.setString(1, searchQuery);
-                    statement.setString(2, searchQuery);
+                    statement.setString(1, searchQuery); // Busca apenas por telefone
                     ResultSet resultSet = statement.executeQuery();
 
                     if (resultSet.next()) {
@@ -613,6 +651,7 @@ public class UserRegistrationGUI {
                 }
             }
         });
+
 
         calculateButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -646,6 +685,13 @@ public class UserRegistrationGUI {
 
                     if (rowsAffected > 0) {
                         JOptionPane.showMessageDialog(panel, pointsToAdd + " pontos atribuídos com sucesso ao usuário com CPF ou Telefone: " + searchQuery);
+
+                        // Inserir ação no histórico
+                        String historicoQuery = "INSERT INTO Historico (tipo_acao, descricao) VALUES (?, ?)";
+                        PreparedStatement historicoStmt = conn.prepareStatement(historicoQuery);
+                        historicoStmt.setString(1, "Atribuição de Pontos");
+                        historicoStmt.setString(2, pointsToAdd + " pontos atribuídos ao usuário com CPF/Telefone: " + searchQuery);
+                        historicoStmt.executeUpdate();
                     } else {
                         JOptionPane.showMessageDialog(panel, "Nenhum usuário encontrado para atribuir pontos.", "Erro", JOptionPane.ERROR_MESSAGE);
                     }
@@ -655,6 +701,7 @@ public class UserRegistrationGUI {
                 }
             }
         });
+
 
         lowerButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -675,7 +722,14 @@ public class UserRegistrationGUI {
                     int rowsAffected = statement.executeUpdate();
 
                     if (rowsAffected > 0) {
-                        JOptionPane.showMessageDialog(panel, pointsToReduce + " pontos reduzidos com sucesso do usuário com CPF ou Telefone: " + searchQuery);
+                        JOptionPane.showMessageDialog(panel, pointsToReduce + " pontos reduzidos com sucesso.");
+
+                        // Adiciona ao histórico
+                        String historicoQuery = "INSERT INTO Historico (tipo_acao, descricao) VALUES (?, ?)";
+                        PreparedStatement historicoStmt = conn.prepareStatement(historicoQuery);
+                        historicoStmt.setString(1, "Redução de Pontos");
+                        historicoStmt.setString(2, "Usuário com CPF/Telefone: " + searchQuery + " teve " + pointsToReduce + " pontos reduzidos.");
+                        historicoStmt.executeUpdate();
                     } else {
                         JOptionPane.showMessageDialog(panel, "Nenhum usuário encontrado para reduzir pontos.", "Erro", JOptionPane.ERROR_MESSAGE);
                     }
@@ -697,5 +751,5 @@ public class UserRegistrationGUI {
         int roundedPoints = (int) Math.round(points);
         return roundedPoints;
     }
-    
+     
 }

@@ -4,6 +4,13 @@ import java.sql.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import com.mysql.cj.jdbc.MysqlDataSource;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import org.mindrot.jbcrypt.BCrypt;
+import javax.crypto.Cipher;
+
+import java.util.Base64;
 
 public class BudgetGUI {
     public static void main(String[] args) {
@@ -14,7 +21,34 @@ public class BudgetGUI {
 
         SwingUtilities.invokeLater(() -> createAndShowGUI(ds));
     }
+    
+    private static final String ALGORITHM = "AES";
+    private static final int KEY_SIZE = 128; // Tamanho da chave em bits
 
+    // Método para gerar uma chave secreta
+    private static SecretKey generateKey() throws Exception {
+        KeyGenerator keyGen = KeyGenerator.getInstance(ALGORITHM);
+        keyGen.init(KEY_SIZE);
+        return keyGen.generateKey();
+    }
+
+    // Método para criptografar um texto usando uma chave
+    private static String encrypt(String data, SecretKey key) throws Exception {
+        Cipher cipher = Cipher.getInstance(ALGORITHM);
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        byte[] encryptedData = cipher.doFinal(data.getBytes());
+        return Base64.getEncoder().encodeToString(encryptedData);
+    }
+
+    // Método para descriptografar um texto usando uma chave
+    private static String decrypt(String encryptedData, SecretKey key) throws Exception {
+        Cipher cipher = Cipher.getInstance(ALGORITHM);
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        byte[] decodedData = Base64.getDecoder().decode(encryptedData);
+        byte[] decryptedData = cipher.doFinal(decodedData);
+        return new String(decryptedData);
+    }
+    
     private static void createAndShowGUI(MysqlDataSource ds) {
         JFrame frame = new JFrame("Lista de Resgate");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -32,7 +66,7 @@ public class BudgetGUI {
     private static JPanel createBudgetPanel(JFrame frame, MysqlDataSource ds) {
         JPanel panel = new JPanel(new GridBagLayout());
 
-        JLabel nameLabel = new JLabel("Digite o CPF ou Telefone do Cliente:");
+        JLabel nameLabel = new JLabel("Digite o Telefone do Cliente:");
         JTextField searchField = new JTextField(20);
         JButton searchButton = new JButton("Buscar Cliente");
         JLabel clientInfoLabel = new JLabel("Cliente: ");
@@ -102,55 +136,77 @@ public class BudgetGUI {
             String searchQuery = searchField.getText(); // Obtém o valor digitado no campo de busca
 
             if (searchQuery.isEmpty()) {
-                // Se o campo estiver vazio, exibe um erro
-                JOptionPane.showMessageDialog(panel, "Digite o CPF ou Telefone para buscar.", "Erro", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(panel, "Digite o Telefone para buscar.", "Erro", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            // Tentativa de conexão e busca no banco de dados
             try (Connection conn = ds.getConnection()) {
-                // Query para buscar o cliente com base no CPF ou telefone
-                String selectQuery = "SELECT username, pontos FROM Clientes WHERE CPF = ? OR telefone = ?";
+                // Query para buscar o cliente com base apenas no telefone
+                String selectQuery = "SELECT username, pontos, telefone, endereço, CPF, `key` FROM Clientes WHERE telefone = ?";
                 PreparedStatement statement = conn.prepareStatement(selectQuery);
-                statement.setString(1, searchQuery);
-                statement.setString(2, searchQuery);
+                statement.setString(1, searchQuery); // Tenta buscar por telefone
                 ResultSet resultSet = statement.executeQuery();
 
-                // Verifica se algum resultado foi encontrado
-                if (resultSet.next()) {
+                boolean foundUser = false;
+
+                while (resultSet.next()) {
+                    String storedCpf = resultSet.getString("CPF");
+                    String storedKey = resultSet.getString("key");
+
+                    // Se o input for um telefone, não precisamos criptografar ou comparar CPF
+                    // Removido a criptografia do CPF e a verificação do CPF, pois não será necessário
+                    if (storedKey != null && storedCpf != null && searchQuery.length() == 11) { // Verifica se o input é um CPF
+                        SecretKey key = new SecretKeySpec(Base64.getDecoder().decode(storedKey), "AES");
+
+                        // Criptografar o CPF digitado para comparar
+                        String encryptedCpf = encrypt(searchQuery, key);
+
+                        // Se o CPF criptografado digitado for diferente do armazenado, continua
+                        if (!storedCpf.equals(encryptedCpf)) {
+                            continue; // Não há correspondência com o CPF
+                        }
+                    }
+
+                    // Se o telefone corresponder, atualizamos a interface
+                    foundUser = true;
                     String name = resultSet.getString("username");
                     int points = resultSet.getInt("pontos");
 
                     // Atualiza as informações na interface
                     clientInfoLabel.setText("Cliente: " + name);
                     pointsLabel.setText("Pontos do Cliente: " + points); // Atualiza os pontos do cliente
-                } else {
-                    // Se o cliente não for encontrado, exibe mensagem de erro
+                }
+
+                if (!foundUser) {
                     clientInfoLabel.setText("Cliente não encontrado.");
                     pointsLabel.setText("Pontos do Cliente: 0");
                 }
+
             } catch (SQLException ex) {
-                // Tratamento de erro ao acessar o banco de dados
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(panel, "Erro ao buscar cliente.", "Erro", JOptionPane.ERROR_MESSAGE);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(panel, "Erro na criptografia do CPF.", "Erro", JOptionPane.ERROR_MESSAGE);
             }
         });
+
+
+
         
         redeemButton.addActionListener(e -> {
             if (model.getRowCount() == 0) {
-                // Caso não haja produtos na lista de resgate, exibe uma mensagem de erro
                 JOptionPane.showMessageDialog(panel, "Nenhum produto adicionado à lista de resgate.", "Erro", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            String searchQuery = searchField.getText(); // Obtém o valor digitado no campo de busca
+            String searchQuery = searchField.getText();
             if (searchQuery.isEmpty()) {
-                JOptionPane.showMessageDialog(panel, "Digite o CPF ou Telefone do cliente para realizar o resgate.", "Erro", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(panel, "Digite o Telefone do cliente para realizar o resgate.", "Erro", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
             try (Connection conn = ds.getConnection()) {
-                // Busca os pontos do cliente no banco de dados
                 String selectQuery = "SELECT pontos FROM Clientes WHERE CPF = ? OR telefone = ?";
                 PreparedStatement stmt = conn.prepareStatement(selectQuery);
                 stmt.setString(1, searchQuery);
@@ -158,24 +214,19 @@ public class BudgetGUI {
                 ResultSet rs = stmt.executeQuery();
 
                 if (rs.next()) {
-                    int pontosCliente = rs.getInt("pontos"); // Pontos atuais do cliente
-                    int totalPontosResgate = calculateTotalPoints(model); // Total de pontos necessários para o resgate
+                    int pontosCliente = rs.getInt("pontos");
+                    int totalPontosResgate = calculateTotalPoints(model);
 
-                    // Exibe uma janela de confirmação para o usuário
                     int confirm = JOptionPane.showConfirmDialog(panel,
                             "Total de pontos necessários: " + totalPontosResgate + "\nDeseja confirmar o resgate?",
-                            "Confirmação de Resgate",
-                            JOptionPane.YES_NO_OPTION);
+                            "Confirmação de Resgate", JOptionPane.YES_NO_OPTION);
 
                     if (confirm == JOptionPane.YES_OPTION) {
-                        // Verifica se o cliente tem pontos suficientes
                         if (pontosCliente >= totalPontosResgate) {
-                            // Loop por cada item na tabela de resgate para atualizar o estoque e os pontos do cliente
                             for (int i = 0; i < model.getRowCount(); i++) {
-                                String productName = (String) model.getValueAt(i, 0); // Nome do produto
-                                int quantity = (int) model.getValueAt(i, 1); // Quantidade do produto
+                                String productName = (String) model.getValueAt(i, 0);
+                                int quantity = (int) model.getValueAt(i, 1);
 
-                                // Consulta para buscar os pontos de resgate e a quantidade disponível do produto
                                 String selectProductQuery = "SELECT pontos_resgate, quantidade FROM Produtos WHERE name = ?";
                                 PreparedStatement productStmt = conn.prepareStatement(selectProductQuery);
                                 productStmt.setString(1, productName);
@@ -184,47 +235,44 @@ public class BudgetGUI {
                                 if (productResult.next()) {
                                     int availableQuantity = productResult.getInt("quantidade");
 
-                                    // Verifica se há quantidade suficiente no estoque
                                     if (quantity <= availableQuantity) {
-                                        // Atualiza os pontos do cliente
                                         String updateClientQuery = "UPDATE Clientes SET pontos = pontos - ? WHERE CPF = ? OR telefone = ?";
                                         PreparedStatement updateClientStmt = conn.prepareStatement(updateClientQuery);
-                                        updateClientStmt.setInt(1, totalPontosResgate); // Deduz os pontos do total de resgate
+                                        updateClientStmt.setInt(1, totalPontosResgate);
                                         updateClientStmt.setString(2, searchQuery);
                                         updateClientStmt.setString(3, searchQuery);
                                         updateClientStmt.executeUpdate();
 
-                                        // Atualiza a quantidade de produtos no estoque
                                         String updateProductQuery = "UPDATE Produtos SET quantidade = quantidade - ? WHERE name = ?";
                                         PreparedStatement updateProductStmt = conn.prepareStatement(updateProductQuery);
-                                        updateProductStmt.setInt(1, quantity); // Deduz a quantidade resgatada do estoque
+                                        updateProductStmt.setInt(1, quantity);
                                         updateProductStmt.setString(2, productName);
                                         updateProductStmt.executeUpdate();
+                                        
+                                        // Adiciona ao histórico de ações
+                                        String historicoQuery = "INSERT INTO Historico (tipo_acao, descricao) VALUES (?, ?)";
+                                        PreparedStatement historicoStmt = conn.prepareStatement(historicoQuery);
+                                        historicoStmt.setString(1, "Resgate de Produto");
+                                        historicoStmt.setString(2, "Produto " + productName + " resgatado pelo cliente " + searchQuery);
+                                        historicoStmt.executeUpdate();
+
                                     } else {
-                                        // Caso não tenha quantidade suficiente em estoque
                                         JOptionPane.showMessageDialog(panel, "Estoque insuficiente para o produto: " + productName, "Erro", JOptionPane.ERROR_MESSAGE);
-                                        return; // Encerra o processo de resgate
+                                        return;
                                     }
                                 }
                             }
 
-                            // Atualiza os pontos do cliente na interface após o resgate
                             pontosCliente -= totalPontosResgate;
                             pointsLabel.setText("Pontos do Cliente: " + pontosCliente);
-
-                            // Exibe mensagem de sucesso
                             JOptionPane.showMessageDialog(panel, "Resgate realizado com sucesso!");
-
-                            // Limpa a lista de resgate após o sucesso
                             model.setRowCount(0);
                             updateTotalPoints(model, totalPointsLabel);
                         } else {
-                            // Caso o cliente não tenha pontos suficientes
                             JOptionPane.showMessageDialog(panel, "Pontos insuficientes para o resgate.", "Erro", JOptionPane.ERROR_MESSAGE);
                         }
                     }
                 } else {
-                    // Caso o cliente não seja encontrado no banco de dados
                     JOptionPane.showMessageDialog(panel, "Cliente não encontrado.", "Erro", JOptionPane.ERROR_MESSAGE);
                 }
             } catch (SQLException ex) {
@@ -232,6 +280,7 @@ public class BudgetGUI {
                 JOptionPane.showMessageDialog(panel, "Erro ao realizar resgate.", "Erro", JOptionPane.ERROR_MESSAGE);
             }
         });
+
         
         // Event Listener for Add Button
         addButton.addActionListener(e -> {

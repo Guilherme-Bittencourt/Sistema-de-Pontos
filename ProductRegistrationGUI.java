@@ -111,33 +111,11 @@ public class ProductRegistrationGUI {
                     return;
                 }
 
-                int quantidade;
-                float preco;
-                int pontosResgate;
-
+                // Verifica se os pontos são decimais
                 try {
-                    quantidade = Integer.parseInt(quantidadeStr);
+                    int pontos = Integer.parseInt(pontosStr);
                 } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(panel, "Quantidade deve ser um número inteiro.", "Erro", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                try {
-                    preco = Float.parseFloat(precoStr.replace(",", "."));
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(panel, "Preço deve ser um número decimal.", "Erro", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                try {
-                    pontosResgate = Integer.parseInt(pontosStr);
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(panel, "Pontos para resgate devem ser um número inteiro.", "Erro", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                if (quantidade < 0) {
-                    JOptionPane.showMessageDialog(panel, "Quantidade não pode ser negativa.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(panel, "Os pontos devem ser um número inteiro.", "Erro", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
@@ -145,18 +123,31 @@ public class ProductRegistrationGUI {
                     String insertQuery = "INSERT INTO Produtos (name, quantidade, preco, pontos_resgate) VALUES (?, ?, ?, ?)";
                     PreparedStatement statement = conn.prepareStatement(insertQuery);
                     statement.setString(1, name);
-                    statement.setInt(2, quantidade);
-                    statement.setFloat(3, preco);
-                    statement.setInt(4, pontosResgate);
-
+                    statement.setInt(2, Integer.parseInt(quantidadeStr));
+                    statement.setFloat(3, Float.parseFloat(precoStr));
+                    statement.setInt(4, Integer.parseInt(pontosStr));
                     int rowsAffected = statement.executeUpdate();
-                    JOptionPane.showMessageDialog(panel, rowsAffected + " registro(s) inserido(s) com sucesso.");
+
+                    if (rowsAffected > 0) {
+                        JOptionPane.showMessageDialog(panel, "Produto adicionado com sucesso.");
+
+                        // Adiciona ao histórico
+                        String historicoQuery = "INSERT INTO Historico (tipo_acao, descricao) VALUES (?, ?)";
+                        PreparedStatement historicoStmt = conn.prepareStatement(historicoQuery);
+                        historicoStmt.setString(1, "Criação de Produto");
+                        historicoStmt.setString(2, "Produto " + name + " foi criado.");
+                        historicoStmt.executeUpdate();
+                    } else {
+                        JOptionPane.showMessageDialog(panel, "Erro ao adicionar produto.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    }
                 } catch (SQLException ex) {
                     ex.printStackTrace();
                     JOptionPane.showMessageDialog(panel, "Erro ao adicionar produto.", "Erro", JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
+
+
 
         backButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -277,10 +268,13 @@ public class ProductRegistrationGUI {
 
         deleteButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                // Solicita confirmação antes de excluir o produto
-                int confirm = JOptionPane.showConfirmDialog(panel, "Você realmente deseja excluir este produto?", "Confirmação de Exclusão", JOptionPane.YES_NO_OPTION);
+                // Alterando o ícone de confirmação para o ícone de erro (vermelho)
+                int confirm = JOptionPane.showConfirmDialog(panel, 
+                        "Você realmente deseja excluir este produto?", 
+                        "Confirmação de Exclusão", 
+                        JOptionPane.YES_NO_OPTION, 
+                        JOptionPane.ERROR_MESSAGE); // Ícone de erro em vermelho
                 if (confirm == JOptionPane.YES_OPTION) {
-                    // Obtém o ID do produto selecionado na tabela
                     int selectedRow = table.getSelectedRow();
                     if (selectedRow >= 0) {
                         int productId = (int) model.getValueAt(selectedRow, 0);
@@ -290,9 +284,18 @@ public class ProductRegistrationGUI {
                             PreparedStatement statement = conn.prepareStatement(deleteQuery);
                             statement.setInt(1, productId);
                             int rowsAffected = statement.executeUpdate();
+
                             if (rowsAffected > 0) {
                                 JOptionPane.showMessageDialog(panel, "Produto excluído com sucesso.");
-                                model.removeRow(selectedRow); // Remove a linha da tabela após a exclusão
+
+                                // Adiciona ao histórico
+                                String historicoQuery = "INSERT INTO Historico (tipo_acao, descricao) VALUES (?, ?)";
+                                PreparedStatement historicoStmt = conn.prepareStatement(historicoQuery);
+                                historicoStmt.setString(1, "Exclusão de Produto");
+                                historicoStmt.setString(2, "Produto com ID: " + productId + " foi excluído.");
+                                historicoStmt.executeUpdate();
+
+                                model.removeRow(selectedRow);
                             } else {
                                 JOptionPane.showMessageDialog(panel, "Erro ao excluir produto.", "Erro", JOptionPane.ERROR_MESSAGE);
                             }
@@ -300,13 +303,10 @@ public class ProductRegistrationGUI {
                             ex.printStackTrace();
                             JOptionPane.showMessageDialog(panel, "Erro ao excluir produto.", "Erro", JOptionPane.ERROR_MESSAGE);
                         }
-                    } else {
-                        JOptionPane.showMessageDialog(panel, "Nenhum produto selecionado para exclusão.", "Erro", JOptionPane.ERROR_MESSAGE);
                     }
                 }
             }
         });
-
 
         return panel;
     }
@@ -419,44 +419,34 @@ public class ProductRegistrationGUI {
                     return;
                 }
 
-                int quantidade;
-                float preco;
-                int pontosResgate;
-
+                // Verifica se os pontos são decimais
                 try {
-                    quantidade = Integer.parseInt(quantidadeStr);
+                    int pontos = Integer.parseInt(pontosStr);
                 } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(panel, "Quantidade deve ser um número inteiro.", "Erro", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                try {
-                    preco = Float.parseFloat(precoStr.replace(",", "."));
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(panel, "Preço deve ser um número decimal.", "Erro", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                try {
-                    pontosResgate = Integer.parseInt(pontosStr);
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(panel, "Pontos para resgate devem ser um número inteiro.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(panel, "Os pontos devem ser um número inteiro.", "Erro", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
                 try (Connection conn = ds.getConnection()) {
-                    String updateQuery = "UPDATE Produtos SET name = ?, quantidade = ?, preco = ?, pontos_resgate = ? WHERE id = ?";
+                    String updateQuery = "UPDATE Produtos SET quantidade = ?, preco = ?, pontos_resgate = ? WHERE name = ?";
                     PreparedStatement statement = conn.prepareStatement(updateQuery);
-                    statement.setString(1, name);
-                    statement.setInt(2, quantidade);
-                    statement.setFloat(3, preco);
-                    statement.setInt(4, pontosResgate);
-                    statement.setString(5, id);
+                    statement.setInt(1, Integer.parseInt(quantidadeStr));
+                    statement.setFloat(2, Float.parseFloat(precoStr));
+                    statement.setInt(3, Integer.parseInt(pontosStr));
+                    statement.setString(4, name);
                     int rowsAffected = statement.executeUpdate();
+
                     if (rowsAffected > 0) {
-                        JOptionPane.showMessageDialog(panel, rowsAffected + " produto(s) atualizado(s) com sucesso.");
+                        JOptionPane.showMessageDialog(panel, "Produto atualizado com sucesso.");
+
+                        // Adiciona ao histórico
+                        String historicoQuery = "INSERT INTO Historico (tipo_acao, descricao) VALUES (?, ?)";
+                        PreparedStatement historicoStmt = conn.prepareStatement(historicoQuery);
+                        historicoStmt.setString(1, "Atualização de Produto");
+                        historicoStmt.setString(2, "Produto " + name + " foi atualizado.");
+                        historicoStmt.executeUpdate();
                     } else {
-                        JOptionPane.showMessageDialog(panel, "Produto não encontrado.", "Erro", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(panel, "Erro ao atualizar produto.", "Erro", JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (SQLException ex) {
                     ex.printStackTrace();
@@ -465,6 +455,8 @@ public class ProductRegistrationGUI {
             }
         });
 
+        
+        
         return panel;
     }
 
