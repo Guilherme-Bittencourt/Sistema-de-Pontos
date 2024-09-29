@@ -142,7 +142,7 @@ public class BudgetGUI {
 
             try (Connection conn = ds.getConnection()) {
                 // Query para buscar o cliente com base apenas no telefone
-                String selectQuery = "SELECT username, pontos, telefone, endereço, CPF, `key` FROM Clientes WHERE telefone = ?";
+                String selectQuery = "SELECT username, pontos, telefone, endereço FROM Clientes WHERE telefone = ?";
                 PreparedStatement statement = conn.prepareStatement(selectQuery);
                 statement.setString(1, searchQuery); // Tenta buscar por telefone
                 ResultSet resultSet = statement.executeQuery();
@@ -150,23 +150,6 @@ public class BudgetGUI {
                 boolean foundUser = false;
 
                 while (resultSet.next()) {
-                    String storedCpf = resultSet.getString("CPF");
-                    String storedKey = resultSet.getString("key");
-
-                    // Se o input for um telefone, não precisamos criptografar ou comparar CPF
-                    // Removido a criptografia do CPF e a verificação do CPF, pois não será necessário
-                    if (storedKey != null && storedCpf != null && searchQuery.length() == 11) { // Verifica se o input é um CPF
-                        SecretKey key = new SecretKeySpec(Base64.getDecoder().decode(storedKey), "AES");
-
-                        // Criptografar o CPF digitado para comparar
-                        String encryptedCpf = encrypt(searchQuery, key);
-
-                        // Se o CPF criptografado digitado for diferente do armazenado, continua
-                        if (!storedCpf.equals(encryptedCpf)) {
-                            continue; // Não há correspondência com o CPF
-                        }
-                    }
-
                     // Se o telefone corresponder, atualizamos a interface
                     foundUser = true;
                     String name = resultSet.getString("username");
@@ -185,13 +168,8 @@ public class BudgetGUI {
             } catch (SQLException ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(panel, "Erro ao buscar cliente.", "Erro", JOptionPane.ERROR_MESSAGE);
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(panel, "Erro na criptografia do CPF.", "Erro", JOptionPane.ERROR_MESSAGE);
             }
         });
-
-
 
         
         redeemButton.addActionListener(e -> {
